@@ -5,6 +5,7 @@ import SignIn from "../pages/SignIn";
 import SignUp from "../pages/SignUp";
 import CreateGroup from "../pages/CreateGroup";
 import BrowseGroups from "../pages/BrowseGroups";
+import SettingsGeneral from "../pages/SettingsGeneral";
 
 function SignInWrapper() {
   const navigate = useNavigate();
@@ -36,6 +37,10 @@ export default function AppRoutes() {
         <Route path="/projects" element={<Projects />} />
         <Route path="/group/create" element={<CreateGroup />} />
         <Route path="/group/browser" element={<BrowseGroups />} />
+        <Route path="/settings" element={<SettingsGeneral />} />
+        <Route path="/settings/:tab" element={<SettingsGeneral />} />
+        <Route path="/privacy" element={<SettingsGeneral defaultTab="Privacy" />} />
+        <Route path="/timeline" element={<SettingsGeneral defaultTab="Timeline" />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>
