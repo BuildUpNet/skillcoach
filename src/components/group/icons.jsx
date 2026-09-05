@@ -11,11 +11,17 @@ const PATHS = {
   book: "M4 19.5A2.5 2.5 0 016.5 17H20M4 19.5A2.5 2.5 0 006.5 22H20V4a2 2 0 00-2-2H6.5A2.5 2.5 0 004 4.5v15z",
   back: "M15 18l-6-6 6-6",
   refresh: "M4 4v6h6M20 20v-6h-6M4.5 15a8 8 0 0014.5 3M19.5 9A8 8 0 005 6",
+  mail: "M3 6.5h18v11H3v-11zm0 0l9 7 9-7",
+  send: "M3 20l18-8L3 4v6l12 2-12 2v6z",
+  edit: "M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4 12.5-12.5z",
+  search: "M17 10.5A6.5 6.5 0 114 10.5a6.5 6.5 0 0113 0zM21 21l-4.8-4.8",
+  link: "M8 12l6-6a4 4 0 115.657 5.657l-2 2M16 12l-6 6a4 4 0 11-5.657-5.657l2-2",
+  music: "M9 18V5l12-2v13M9 18a3 3 0 11-6 0 3 3 0 016 0zm12-2a3 3 0 11-6 0 3 3 0 016 0z",
 };
 
-export default function Icon({ name, className = "h-5 w-5" }) {
+export default function Icon({ name, className = "h-5 w-5", strokeWidth = 1.9 }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className}>
       <path d={PATHS[name] || ""} />
     </svg>
   );
