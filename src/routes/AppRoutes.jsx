@@ -15,13 +15,19 @@ import GroupTimeline from "../pages/group/Timeline";
 import GroupLessons from "../pages/group/Lessons";
 import GroupTasks from "../pages/group/Tasks";
 import TaskDetail from "../pages/group/TaskDetail";
+import CreateGroup from "../pages/CreateGroup";
+import BrowseGroups from "../pages/BrowseGroups";
+import SettingsGeneral from "../pages/SettingsGeneral";
+import MemberProfile from "../pages/MemberProfile";
 
 function SignInWrapper() {
   const navigate = useNavigate();
   return (
     <SignIn
       onNavigateToSignUp={() => navigate("/signup")}
-      onForgotPassword={() => alert("Password reset link will be sent to your email.")}
+      onForgotPassword={() =>
+        alert("Password reset link will be sent to your email.")
+      }
       onSuccess={() => navigate("/projects")}
     />
   );
@@ -57,6 +63,19 @@ export default function AppRoutes() {
           <Route path="tasks" element={<GroupTasks />} />
           <Route path="tasks/:taskId" element={<TaskDetail />} />
         </Route>
+        <Route path="/group/create" element={<CreateGroup />} />
+        <Route path="/group/browser" element={<BrowseGroups />} />
+        <Route path="/profile/:username" element={<MemberProfile />} />
+        <Route path="/settings" element={<SettingsGeneral />} />
+        <Route path="/settings/:tab" element={<SettingsGeneral />} />
+        <Route
+          path="/privacy"
+          element={<SettingsGeneral defaultTab="Privacy" />}
+        />
+        <Route
+          path="/timeline"
+          element={<SettingsGeneral defaultTab="Timeline" />}
+        />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>
