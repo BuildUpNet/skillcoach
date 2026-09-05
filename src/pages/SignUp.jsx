@@ -193,21 +193,6 @@ export default function SignUp({ onNavigateToLogin, onSuccess }) {
 
   return (
     <div className="min-h-screen bg-slate-100 py-10 px-4 sm:px-6 lg:px-8 flex flex-col justify-center items-center">
-      <div className="mb-6 flex flex-col items-center text-center">
-        <div className="inline-flex items-center gap-2.5 mb-2 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200/60 shadow-xs">
-          <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-          <span className="text-xs font-semibold uppercase tracking-wider text-emerald-700">Skillcoach Network</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center shadow-md shadow-emerald-500/20 text-white font-black text-lg">
-            S
-          </div>
-          <span className="text-2xl font-bold tracking-tight text-slate-900">
-            Skill<span className="text-emerald-600">coach</span>
-          </span>
-        </div>
-      </div>
-
       <div className="w-full max-w-xl bg-white rounded-2xl shadow-xl shadow-slate-200/60 border border-slate-200/80 overflow-hidden transition-all duration-300">
         {submitted ? (
           <div className="p-8 sm:p-12 text-center flex flex-col items-center animate-fadeIn">
