@@ -22,13 +22,13 @@ const TRANSACTIONS = [
   { id: "t4", date: "11 hours ago", kind: "login", label: "Log in", credits: 1 },
   { id: "t5", date: "Fri at 4:09 PM", kind: "login", label: "Log in", credits: 1 },
   { id: "t6", date: "August 26", kind: "login", label: "Log in", credits: 1 },
-  { id: "t7", date: "August 26", kind: "friend", label: "Adding a new friend", who: "Damini", credits: 5 },
-  { id: "t8", date: "August 26", kind: "referral", label: "Referring", who: "Damini", suffix: "to join Site", credits: 5 },
+  { id: "t7", date: "August 26", kind: "friend", label: "Adding a new friend", who: "ALEX", credits: 5 },
+  { id: "t8", date: "August 26", kind: "referral", label: "Referring", who: "ALEX", suffix: "to join Site", credits: 5 },
   { id: "t9", date: "August 26", kind: "login", label: "Log in", credits: 1 },
-  { id: "t10", date: "August 26", kind: "invite", label: "Inviting", who: "daminimona1@gmail.com", suffix: "to join Site", credits: 1 },
+  { id: "t10", date: "August 26", kind: "invite", label: "Inviting", who: "ALEX@gmail.com", suffix: "to join Site", credits: 1 },
 ];
 
-const FRIENDS = ["Damini", "Thomas Kee", "Priya Nair", "Marcus Webb", "Dana Kimura"];
+const FRIENDS = ["ALEX", "MAXX", "Priya Nair", "Marcus Webb", "Dana Kimura"];
 
 const FAQ_ITEMS = [
   {
