@@ -1,11 +1,11 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import GroupCard from "../components/GroupCard";
 
 const TABS = [
-  { key: "browse", label: "Browse groups" },
+  { key: "browse", label: "Browse groups", to: "/group/browser" },
   { key: "mine", label: "My groups" },
-  { key: "create", label: "Create new group" },
+  { key: "create", label: "Create new group", to: "/group/create" },
 ];
 
 const initialGroups = [
@@ -13,16 +13,32 @@ const initialGroups = [
 ];
 
 export default function Projects() {
+  const navigate = useNavigate();
+  const location = useLocation();
+
   const [tab, setTab] = useState("mine");
   const [groups, setGroups] = useState(initialGroups);
   const [q, setQ] = useState("");
 
+  // pick up a group created on /group/create
+  useEffect(() => {
+    const g = location.state?.newGroup;
+    if (g) {
+      setGroups((prev) => (prev.some((x) => x.id === g.id) ? prev : [...prev, g]));
+      setTab("mine");
+      navigate(location.pathname, { replace: true, state: null });
+    }
+  }, [location, navigate]);
+
+  const selectTab = (t) => (t.to ? navigate(t.to) : setTab(t.key));
   const leaveGroup = (id) => setGroups((g) => g.filter((x) => x.id !== id));
+
   const visible = groups.filter((g) => g.name.toLowerCase().includes(q.toLowerCase()));
   const people = groups.reduce((n, g) => n + g.members, 0);
 
   return (
     <div className="mx-auto max-w-[1200px] px-4 pt-6">
+      {/* hero */}
       <section className="relative overflow-hidden rounded-3xl bg-forest px-8 py-12 text-white lg:px-14 lg:py-16">
         <div className="pointer-events-none absolute -left-20 -top-32 h-96 w-96 rounded-full bg-gold/30 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-40 right-0 h-96 w-96 rounded-full bg-crimson/40 blur-3xl" />
@@ -60,10 +76,11 @@ export default function Projects() {
         </div>
       </section>
 
+      {/* tabs + search */}
       <section className="mt-10 flex flex-wrap items-center justify-between gap-4">
         <div role="tablist" className="inline-flex rounded-2xl bg-white p-1.5 ring-1 ring-line">
           {TABS.map((t) => (
-            <button key={t.key} role="tab" aria-selected={tab === t.key} onClick={() => setTab(t.key)}
+            <button key={t.key} role="tab" aria-selected={tab === t.key} onClick={() => selectTab(t)}
               className={`rounded-xl px-5 py-2.5 text-[15px] font-semibold transition-colors ${tab === t.key ? "bg-forest text-white shadow" : "text-ink/60 hover:text-ink"}`}>
               {t.label}
               {t.key === "mine" && <span className={`ml-2 rounded-full px-2 py-px text-[12px] font-bold ${tab === t.key ? "bg-gold text-ink" : "bg-mist text-ink/60"}`}>{groups.length}</span>}
@@ -78,10 +95,11 @@ export default function Projects() {
         </label>
       </section>
 
+      {/* grid */}
       <section className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {visible.map((g) => <GroupCard key={g.id} group={g} onLeave={leaveGroup} />)}
 
-        <button onClick={() => setTab("create")}
+        <button onClick={() => navigate("/group/create")}
           className="group flex min-h-[320px] flex-col items-center justify-center rounded-3xl border-2 border-dashed border-gold/60 bg-gold-soft/60 p-8 text-center transition-colors hover:border-gold hover:bg-gold-soft">
           <span className="grid h-14 w-14 place-items-center rounded-full bg-gold text-3xl font-bold text-ink transition-transform group-hover:scale-110">+</span>
           <span className="mt-4 text-[18px] font-extrabold">Create a new group</span>
