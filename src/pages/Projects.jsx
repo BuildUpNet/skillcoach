@@ -9,7 +9,16 @@ const TABS = [
 ];
 
 const initialGroups = [
-  { id: 1, name: "STD work", description: "Work on Stock Traders Daily", members: 10, leader: "Thomas Kee", image: "/groups/std.png" },
+  {
+    id: 1, name: "STD work", description: "Work on Stock Traders Daily", members: 10, leader: "Thomas Kee", image: "/groups/std.png",
+    memberList: [
+      { name: "Gold", username: "gold", avatar: null },
+      { name: "Easy", username: "easy", avatar: null },
+      { name: "Karthick", username: "karthick", avatar: null },
+      { name: "Thomas Kee", username: "thomas-kee", avatar: null },
+      { name: "Sourabh", username: "sourabh", avatar: null },
+    ],
+  },
 ];
 
 export default function Projects() {
