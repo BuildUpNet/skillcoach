@@ -1,26 +1,27 @@
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Plus Jakarta Sans", system-ui, sans-serif;
-  --font-display: "Playfair Display", Georgia, serif;
+  --font-sans: "Manrope", system-ui, sans-serif;
+  --font-display: "Manrope", system-ui, sans-serif;
 
-  --color-ivory: #fbf8f3;
-  --color-cream: #f3ede3;
+  --color-crimson: #8e1c1c;
   --color-forest: #22433b;
   --color-forest-deep: #162d27;
   --color-forest-soft: #e6eeeb;
   --color-gold: #d9a441;
   --color-gold-deep: #b8862c;
-  --color-gold-soft: #f9f1de;
-  --color-ink: #141c1a;
-  --color-line: #e3e8e4;
+  --color-gold-soft: #faf1dc;
+  --color-ink: #141a18;
+  --color-mist: #f4f6f5;
+  --color-ivory: #f4f6f5;
+  --color-line: #e3e8e6;
 }
 
 @layer base {
   html, body, #root { margin: 0; min-height: 100%; }
   body {
-    background: var(--color-ivory);
+    background: var(--color-mist);
     color: var(--color-ink);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
