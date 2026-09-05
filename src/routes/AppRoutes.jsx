@@ -3,6 +3,8 @@ import AppLayout from "../layouts/AppLayout";
 import Projects from "../pages/Projects";
 import SignIn from "../pages/SignIn";
 import SignUp from "../pages/SignUp";
+import CreateGroup from "../pages/CreateGroup";
+import BrowseGroups from "../pages/BrowseGroups";
 
 function SignInWrapper() {
   const navigate = useNavigate();
@@ -32,6 +34,8 @@ export default function AppRoutes() {
         <Route path="/" element={<SignInWrapper />} />
         <Route path="/signup" element={<SignUpWrapper />} />
         <Route path="/projects" element={<Projects />} />
+        <Route path="/group/create" element={<CreateGroup />} />
+        <Route path="/group/browser" element={<BrowseGroups />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>
