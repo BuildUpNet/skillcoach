@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import GroupCard from "../components/GroupCard";
 
 const TABS = [
@@ -13,6 +13,7 @@ const initialGroups = [
 ];
 
 export default function Projects() {
+  const navigate = useNavigate();
   const [tab, setTab] = useState("mine");
   const [groups, setGroups] = useState(initialGroups);
   const [q, setQ] = useState("");
@@ -79,7 +80,9 @@ export default function Projects() {
       </section>
 
       <section className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {visible.map((g) => <GroupCard key={g.id} group={g} onLeave={leaveGroup} />)}
+        {visible.map((g) => (
+          <GroupCard key={g.id} group={g} onLeave={leaveGroup} onOpen={(id) => navigate(`/projects/${id}`)} />
+        ))}
 
         <button onClick={() => setTab("create")}
           className="group flex min-h-[320px] flex-col items-center justify-center rounded-3xl border-2 border-dashed border-gold/60 bg-gold-soft/60 p-8 text-center transition-colors hover:border-gold hover:bg-gold-soft">
