@@ -546,12 +546,272 @@ function ChangePasswordPanel() {
   );
 }
 
-/* ============================== placeholder for remaining tabs ============================== */
+/* ============================== Notifications tab ============================== */
 
-function ComingSoonPanel({ tab }) {
+const NOTIFICATION_GROUPS = [
+  {
+    title: "General",
+    options: [
+      "When people comment on things I post.",
+      "When people comment on the same thing as me.",
+      "When someone accepts my friend request.",
+      "When I receive a friend request.",
+      "When people like things I post.",
+      "When people comment on things I've liked.",
+      "When I receive a message.",
+      "ACTIVITY_TYPE_POST_OFFERREVIEW",
+      "When people post review on my Page",
+      "When people post on my profile.",
+      "When people rate my content",
+      "ACTIVITY_TYPE_RATED_NOTES",
+      "ACTIVITY_TYPE_REVIEW_NOTES",
+      "When activity feed item is shared.",
+      "When I'm tagged in photos and other places.",
+      "ACTIVITY_TYPE_USER_ACCOUNT_AS_COACH_APPROVED",
+      "ACTIVITY_TYPE_USER_ACCOUNT_AS_COACH_DENY",
+      "ACTIVITY_TYPE_USER_ACCOUNT_AS_COACH_REQUEST",
+    ],
+  },
+  { title: "Blogs", options: ["When a new blog entry is posted by a member you have subscribed to."] },
+  {
+    title: "Credits Plugin",
+    options: [
+      "ACTIVITY_TYPE_GIVE_CREDITS_BYNOTES",
+      "When admin send credits",
+      "ACTIVITY_TYPE_SEND_CREDITS_BYNOTES",
+      "When admin set credits",
+    ],
+  },
+  {
+    title: "Events",
+    options: [
+      "When my request to attend an event is approved.",
+      "When someone request to join my event.",
+      "When people reply to discussion topics that I've replied to.",
+      "When people reply to discussion topics that I create.",
+      "When I'm invited to attend an event.",
+    ],
+  },
+  {
+    title: "Forum",
+    options: [
+      "When I'm given moderator status in a forum.",
+      "When people reply to forum topics that I've replied to.",
+      "When people reply to forum topics that I create.",
+    ],
+  },
+  {
+    title: "Groups",
+    options: [
+      "When my request to join a group is approved.",
+      "When someone requests to join a group I created.",
+      "ACTIVITY_TYPE_GROUP_CHANGE_ASSIGN",
+      "When people reply to discussion topics that I've replied to.",
+      "When people reply to discussion topics that I create.",
+      "When I'm invited to join a group.",
+      "When I'm given officer status in a group.",
+      "ACTIVITY_TYPE_GROUP_TASK_ACTIVITY",
+      "ACTIVITY_TYPE_GROUP_TASK_COMMENT",
+      "ACTIVITY_TYPE_GROUP_TASK_COMMENT_REPLY",
+      "ACTIVITY_TYPE_GROUP_TASK_COMMENT_REPLY_TO_TASK_MANAGER",
+      "ACTIVITY_TYPE_GROUP_TASK_COMMENT_TO_TASK_MANAGER",
+      "ACTIVITY_TYPE_GROUP_TASK_CREATE",
+      "ACTIVITY_TYPE_GROUP_TASK_CREATEASSIGNMENT",
+      "ACTIVITY_TYPE_GROUP_TASK_CREATEASSIGNMENT_TO_TASK_MANAGER",
+      "ACTIVITY_TYPE_GROUP_TASK_STATUS",
+    ],
+  },
+  { title: "Badges", options: ["When I receive a Rank", "When your page receives a badge", "When I receive a badge"] },
+  { title: "Like", options: ["When member send an update to his/her likes", "When member suggest to friends something"] },
+  {
+    title: "Page",
+    options: [
+      "When someone adds you to a page team.",
+      "When page owner adds some user as an employee to his/her page",
+      "When someone removes you from a page team.",
+      "When someone likes my page.",
+      "When someone posts things on feed on my page.",
+    ],
+  },
+  {
+    title: "Videos",
+    options: [
+      "ACTIVITY_TYPE_SHARED_LESSON",
+      "ACTIVITY_TYPE_SHARED_LESSON_SHARE",
+      "When a video has been processed.",
+      "When a video has failed to be processed.",
+    ],
+  },
+  { title: "Wall", options: ["When I'm tagged in post"] },
+  {
+    title: "YN - Social Ads",
+    options: [
+      "When someone has just approved your ads.",
+      "When someone has just deleted your ads",
+      "When someone has just denied your ads",
+      "When someone has just paused your ads",
+      "When someone has just resumed your ads",
+      "When someone has just approved your request money",
+      "When someone has just rejected your request money",
+    ],
+  },
+];
+
+const notifKey = (groupTitle, i) => `${groupTitle}__${i}`;
+
+const initialNotifState = () =>
+  Object.fromEntries(NOTIFICATION_GROUPS.flatMap((g) => g.options.map((_, i) => [notifKey(g.title, i), true])));
+
+function NotificationSettingsPanel() {
+  const [values, setValues] = useState(initialNotifState);
+  const [status, setStatus] = useState(null); // null | "saving" | "saved"
+
+  const toggle = (key) => setValues((v) => ({ ...v, [key]: !v[key] }));
+
+  const setGroup = (group, checked) =>
+    setValues((v) => {
+      const next = { ...v };
+      group.options.forEach((_, i) => (next[notifKey(group.title, i)] = checked));
+      return next;
+    });
+
+  const handleSave = () => {
+    setStatus("saving");
+    setTimeout(() => {
+      setStatus("saved");
+      setTimeout(() => setStatus(null), 3000);
+    }, 400);
+  };
+
   return (
-    <SettingsCard title={tab} description="This section is being redesigned." footer={<span />}>
-      <div className="py-10 text-center text-[15px] text-[#6b7a75]">Nothing to configure here yet.</div>
+    <SettingsCard
+      title="Notification Settings"
+      description="Which of these do you want to receive email alerts about?"
+      footer={
+        <SaveFooter
+          saved={status === "saved"}
+          onSave={handleSave}
+          variant="timeline"
+          label={status === "saving" ? "Saving…" : "Save Changes"}
+          savedText="Changes saved."
+        />
+      }
+    >
+      <div className="mt-2 space-y-4">
+        {NOTIFICATION_GROUPS.map((group) => {
+          const keys = group.options.map((_, i) => notifKey(group.title, i));
+          const checkedCount = keys.filter((k) => values[k]).length;
+          const allOn = checkedCount === keys.length;
+
+          return (
+            <fieldset
+              key={group.title}
+              className="grid gap-3 rounded-xl border border-gray-200/80 bg-gray-50/60 p-4 md:grid-cols-[190px_minmax(0,1fr)] md:gap-8 md:p-5"
+            >
+              <div>
+                <legend className="text-sm font-semibold text-gray-900">{group.title}</legend>
+                <p className="mt-1 text-xs text-gray-500">
+                  {checkedCount} of {keys.length} on
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setGroup(group, !allOn)}
+                  className="mt-2 text-xs font-medium text-[#19352d] underline-offset-2 hover:underline"
+                >
+                  {allOn ? "Turn all off" : "Turn all on"}
+                </button>
+              </div>
+
+              <ul className="divide-y divide-gray-100 overflow-hidden rounded-lg border border-gray-200/80 bg-white">
+                {group.options.map((label, i) => {
+                  const key = keys[i];
+                  const id = `notif-${group.title.replace(/\W+/g, "-")}-${i}`;
+                  return (
+                    <li key={key}>
+                      <label
+                        htmlFor={id}
+                        className="flex cursor-pointer items-start gap-3 px-4 py-2.5 text-sm text-gray-800 transition hover:bg-gray-50"
+                      >
+                        <input
+                          id={id}
+                          type="checkbox"
+                          name={key}
+                          checked={!!values[key]}
+                          onChange={() => toggle(key)}
+                          className="mt-0.5 h-4 w-4 flex-none cursor-pointer rounded border-gray-300 accent-[#19352d]"
+                        />
+                        <span className={label.startsWith("ACTIVITY_TYPE_") ? "break-all" : ""}>
+                          {label}
+                        </span>
+                      </label>
+                    </li>
+                  );
+                })}
+              </ul>
+            </fieldset>
+          );
+        })}
+      </div>
+    </SettingsCard>
+  );
+}
+
+/* ============================== Delete Account tab ============================== */
+
+function DeleteAccountPanel({ onCancel }) {
+  const [status, setStatus] = useState(null); // null | "deleting" | "deleted"
+
+  const handleDelete = () => {
+    setStatus("deleting");
+    setTimeout(() => {
+      setStatus("deleted");
+    }, 800);
+  };
+
+  return (
+    <SettingsCard
+      title="Delete Account"
+      description="This action is permanent and cannot be undone."
+      footer={<span />}
+    >
+      <div className="mt-2 rounded-xl border border-red-100 bg-red-50/50 p-5 md:p-6">
+        <div className="flex gap-4">
+          <div className="mt-0.5 flex h-9 w-9 flex-none items-center justify-center rounded-full bg-red-100 text-red-600">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5" aria-hidden="true">
+              <path d="M12 9v4m0 4h.01M10.3 3.9 1.8 18.6A2 2 0 0 0 3.5 21.6h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </div>
+          <p className="max-w-xl text-base leading-relaxed text-gray-800">
+            Are you sure you want to delete your account? Any content you've uploaded in the past
+            will be permanently deleted. You will be immediately signed out and will no longer be
+            able to sign in with this account.
+          </p>
+        </div>
+
+        <div className="mt-6 flex flex-col-reverse items-stretch gap-3 sm:flex-row sm:items-center">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="cursor-pointer text-center text-sm font-medium text-gray-500 transition hover:text-gray-800 sm:order-2 sm:ml-1"
+          >
+            or cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleDelete}
+            disabled={status === "deleting" || status === "deleted"}
+            className="rounded-xl bg-red-600 px-6 py-3 font-medium text-white shadow-sm transition hover:bg-red-700 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600/40 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 sm:order-1"
+          >
+            {status === "deleting" ? "Deleting…" : status === "deleted" ? "Account Deleted" : "Yes, Delete My Account"}
+          </button>
+        </div>
+
+        {status === "deleted" && (
+          <p className="mt-3 text-sm font-medium text-green-700" role="alert">
+            Your account deletion request has been processed.
+          </p>
+        )}
+      </div>
     </SettingsCard>
   );
 }
@@ -568,7 +828,11 @@ export default function SettingsGeneral({ defaultTab = "General" }) {
     const clean = val.toLowerCase().replace(/[\s-_]+/g, "");
     const match = TABS.find((t) => {
       const tClean = t.toLowerCase().replace(/[\s-_]+/g, "");
-      return tClean === clean || (clean === "password" && tClean === "changepassword");
+      return (
+        tClean === clean ||
+        (clean === "password" && tClean === "changepassword") ||
+        (clean === "delete" && tClean === "deleteaccount")
+      );
     });
     return match || defaultTab;
   };
@@ -593,12 +857,16 @@ export default function SettingsGeneral({ defaultTab = "General" }) {
         return <GeneralPanel />;
       case "Privacy":
         return <PrivacyPanel />;
+      case "Notifications":
+        return <NotificationSettingsPanel />;
       case "Timeline":
         return <TimelinePanel />;
       case "Change Password":
         return <ChangePasswordPanel />;
+      case "Delete Account":
+        return <DeleteAccountPanel onCancel={() => handleTabChange("General")} />;
       default:
-        return <ComingSoonPanel tab={activeTab} />;
+        return <GeneralPanel />;
     }
   };
 

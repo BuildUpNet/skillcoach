@@ -80,8 +80,10 @@ export default function AppRoutes() {
         <Route path="/notes" element={<Notes />} />
         <Route path="/credits" element={<Credits />} />
         <Route path="/privacy" element={<SettingsGeneral defaultTab="Privacy" />} />
+        <Route path="/notifications" element={<SettingsGeneral defaultTab="Notifications" />} />
         <Route path="/timeline" element={<SettingsGeneral defaultTab="Timeline" />} />
         <Route path="/change-password" element={<SettingsGeneral defaultTab="Change Password" />} />
+        <Route path="/delete-account" element={<SettingsGeneral defaultTab="Delete Account" />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>
