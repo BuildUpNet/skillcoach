@@ -26,12 +26,13 @@ import Instruction from "../pages/Instruction";
 import Messages from "../pages/Messages";
 import Badges from "../pages/Badges";
 import Notes from "../pages/Notes";
-import Credits from "../pages/Credits"
+import Credits from "../pages/Credits";
 import CoachesCorner from "../pages/CoachesCorner";
-import Members from "../pages/Member";
+import Members from "../pages/Members";
 import Forums from "../pages/forum/Forums";
 import ForumTopics from "../pages/forum/ForumTopics";
 import ForumTopic from "../pages/forum/ForumTopic";
+
 function SignInWrapper() {
   const navigate = useNavigate();
   const { user, signIn } = useAuth();
@@ -92,20 +93,14 @@ export default function AppRoutes() {
           <Route path="/badges" element={<Badges />} />
           <Route path="/notes" element={<Notes />} />
           <Route path="/credits" element={<Credits />} />
-          <Route
-            path="/privacy"
-            element={<SettingsGeneral defaultTab="Privacy" />}
-          />
-          <Route
-            path="/timeline"
-            element={<SettingsGeneral defaultTab="Timeline" />}
-          />
           <Route path="/coaches-corner" element={<CoachesCorner />} />
           <Route path="/members" element={<Members />} />
           <Route path="/forums" element={<Forums />} />
           <Route path="/forums/:forumId/:forumSlug" element={<ForumTopics />} />
           <Route path="/forums/topic/:topicId/:topicSlug" element={<ForumTopic />} />
+          <Route path="/privacy" element={<SettingsGeneral defaultTab="Privacy" />} />
           <Route path="/notifications" element={<SettingsGeneral defaultTab="Notifications" />} />
+          <Route path="/timeline" element={<SettingsGeneral defaultTab="Timeline" />} />
           <Route path="/change-password" element={<SettingsGeneral defaultTab="Change Password" />} />
           <Route path="/delete-account" element={<SettingsGeneral defaultTab="Delete Account" />} />
         </Route>
