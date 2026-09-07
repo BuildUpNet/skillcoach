@@ -5,9 +5,10 @@ import { pool } from './db.js'
 import { authRouter } from './routes/auth.js'
 
 const app = express()
+
 // credentials:true + an explicit origin (not "*") is required for the
-// httpOnly session cookie to be sent/accepted cross-origin (5173 -> 4000)
-app.use(cors({ origin: 'http://localhost:5173', credentials: true })app.use(
+// httpOnly session cookie to be sent/accepted cross-origin
+app.use(
   cors({
     origin: [
       'http://localhost:5173',
@@ -15,12 +16,12 @@ app.use(cors({ origin: 'http://localhost:5173', credentials: true })app.use(
     ],
     credentials: true,
   }),
-))
+)
+
 app.use(express.json())
 app.use(cookieParser())
 
 app.use('/api/auth', authRouter)
-
 // No auth system yet — every group is created/owned by this fixed user id.
 const CURRENT_USER_ID = 1
 
