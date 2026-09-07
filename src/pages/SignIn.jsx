@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { login } from "../lib/api";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -20,6 +21,7 @@ export default function SignIn({ onNavigateToSignUp, onForgotPassword, onSuccess
   const [touched, setTouched] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [formError, setFormError] = useState("");
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -43,7 +45,7 @@ export default function SignIn({ onNavigateToSignUp, onForgotPassword, onSuccess
     validateField(field, formData[field]);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setTouched({ email: true, password: true });
     const v = {};
@@ -51,13 +53,18 @@ export default function SignIn({ onNavigateToSignUp, onForgotPassword, onSuccess
     else if (!EMAIL_RE.test(formData.email)) v.email = "Please enter a valid email address";
     if (!formData.password) v.password = "Password is required";
     setErrors(v);
-    if (Object.keys(v).length === 0) {
-      setIsSubmitting(true);
-      setTimeout(() => {
-        setIsSubmitting(false);
-        setSubmitted(true);
-        onSuccess?.(formData);
-      }, 1000);
+    if (Object.keys(v).length) return;
+
+    setFormError("");
+    setIsSubmitting(true);
+    try {
+      const { user } = await login({ email: formData.email, password: formData.password });
+      setSubmitted(true);
+      onSuccess?.(user);
+    } catch (err) {
+      setFormError(err.message || "Something went wrong, please try again.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -98,6 +105,12 @@ export default function SignIn({ onNavigateToSignUp, onForgotPassword, onSuccess
             </div>
 
             <form onSubmit={handleSubmit} noValidate className="space-y-6">
+              {formError && (
+                <p className="flex items-center gap-1.5 rounded-xl bg-red-50 px-4 py-3 text-[14px] font-medium text-red-600 ring-1 ring-red-100">
+                  <svg className="h-4 w-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" /></svg>
+                  {formError}
+                </p>
+              )}
               <div>
                 <label htmlFor="email" className="mb-2 block text-[15px] font-semibold text-ink">Email address <span className="text-gold-deep">*</span></label>
                 <input id="email" name="email" type="email" autoComplete="email" placeholder="name@example.com"

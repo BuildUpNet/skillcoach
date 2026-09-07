@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useAuth } from "../lib/AuthContext";
 
 /**
  * Settings — "My Settings" page with General + Privacy tabs
@@ -299,9 +300,11 @@ function useSavedFlash() {
 /* ============================== General tab ============================== */
 
 function GeneralPanel() {
+  const { user } = useAuth();
   const [form, setForm] = useState({
-    email: "",
-    profile: "",
+    email: user?.email || "",
+    profile: user?.username || "",
+    displayname: user?.displayname || "",
     facebook: false,
     twitter: false,
     timezone: TIMEZONES[5],
@@ -320,6 +323,9 @@ function GeneralPanel() {
       description="Your account details, connected accounts, and regional preferences."
       footer={<SaveFooter saved={saved} onSave={handleSave} variant="gold" />}
     >
+      <Field label="Display name">
+        <input type="text" value={form.displayname} onChange={update("displayname")} placeholder="e.g. Jane Doe" className={inputClass + " max-w-md"} />
+      </Field>
       <Field label="Email address">
         <input type="email" value={form.email} onChange={update("email")} placeholder="name@example.com" className={inputClass + " max-w-md"} />
       </Field>

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { NavLink, Link } from "react-router-dom";
+import { NavLink, Link, useNavigate } from "react-router-dom";
 import logo from "../assets/logo.png";
+import { useAuth } from "../lib/AuthContext";
 
 const links = [
   { to: "/projects", label: "Projects" },
@@ -11,7 +12,7 @@ const links = [
 ];
 
 const more = [
-  ["Community", [["Coaches corner", "/coaches-corner"], ["Members", "/members"], ["Forum", "/forum"], ["Summary", "/summary"]]],
+  ["Community", [["Coaches corner", "/coaches-corner"], ["Members", "/members"], ["Forum", "/forums"], ["Summary", "/summary"]]],
   ["Account", [["My profile", "/profile/:sourabh"], ["Messages", "/messages"], ["Settings", "/settings"]]],
 ];
 
@@ -19,6 +20,8 @@ export default function Navbar({ updates = 0 }) {
   const [open, setOpen] = useState(false);
   const [menu, setMenu] = useState(false);
   const ref = useRef(null);
+  const navigate = useNavigate();
+  const { user, signOut } = useAuth();
 
   useEffect(() => {
     const h = (e) => ref.current && !ref.current.contains(e.target) && setMenu(false);
@@ -27,6 +30,24 @@ export default function Navbar({ updates = 0 }) {
   }, []);
 
   const pill = "rounded-full px-4 py-2 text-[15px] font-semibold text-ink/70 transition-colors hover:bg-forest-soft hover:text-forest";
+
+  const handleSignOut = async () => {
+    setMenu(false);
+    await signOut();
+    navigate("/");
+  };
+
+  if (!user) {
+    return (
+      <div className="sticky top-0 z-40 px-4 pt-4">
+        <header className="mx-auto flex w-full max-w-[1200px] items-center justify-center rounded-2xl border border-white/60 bg-white/85 px-4 py-2.5 shadow-[0_10px_40px_-18px_rgba(20,26,24,.35)] backdrop-blur-xl lg:rounded-full lg:px-5">
+          <Link to="/" aria-label="SkillCoach home" className="flex-none">
+            <img src={logo} alt="SkillCoach — skillcoach.org" className="h-11 w-auto" />
+          </Link>
+        </header>
+      </div>
+    );
+  }
 
   return (
     <div className="sticky top-0 z-40 px-4 pt-4">
@@ -44,11 +65,15 @@ export default function Navbar({ updates = 0 }) {
 
           <div ref={ref} className="relative">
             <button onClick={() => setMenu((m) => !m)} aria-expanded={menu} className={`${pill} inline-flex items-center gap-1.5 ${menu ? "bg-forest-soft text-forest" : ""}`}>
-              More
+              {user.displayname || user.username}
               <svg width="12" height="12" viewBox="0 0 12 12" className={`transition-transform ${menu ? "rotate-180" : ""}`}><path d="M2 4l4 4 4-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
             </button>
             {menu && (
               <div className="absolute right-0 mt-3 grid w-[420px] grid-cols-2 gap-1 rounded-2xl border border-line bg-white p-3 shadow-[0_24px_60px_-24px_rgba(20,26,24,.4)]">
+                <div className="col-span-2 border-b border-line px-3 pb-2">
+                  <p className="truncate text-[15px] font-bold text-ink">{user.displayname}</p>
+                  <p className="truncate text-[13px] text-ink/55">{user.email}</p>
+                </div>
                 {more.map(([title, items]) => (
                   <div key={title}>
                     <p className="px-3 pb-1 pt-2 text-xs font-bold uppercase tracking-wider text-gold-deep">{title}</p>
@@ -57,7 +82,7 @@ export default function Navbar({ updates = 0 }) {
                     ))}
                   </div>
                 ))}
-                <Link to="/signin" className="col-span-2 mt-1 rounded-lg border-t border-line px-3 pb-1 pt-3 text-[14px] font-medium text-ink/50 hover:text-crimson">Sign out</Link>
+                <button onClick={handleSignOut} className="col-span-2 mt-1 rounded-lg border-t border-line px-3 pb-1 pt-3 text-left text-[14px] font-medium text-ink/50 hover:text-crimson">Sign out</button>
               </div>
             )}
           </div>
@@ -80,6 +105,10 @@ export default function Navbar({ updates = 0 }) {
 
       {open && (
         <div className="mx-auto mt-2 w-full max-w-[1200px] rounded-2xl border border-line bg-white p-3 shadow-xl lg:hidden">
+          <div className="border-b border-line px-4 pb-3">
+            <p className="truncate text-[16px] font-bold text-ink">{user.displayname}</p>
+            <p className="truncate text-[13.5px] text-ink/55">{user.email}</p>
+          </div>
           {links.map((l) => (
             <NavLink key={l.to} to={l.to} onClick={() => setOpen(false)} className={({ isActive }) => `block rounded-xl px-4 py-3 text-[16px] font-semibold ${isActive ? "bg-forest text-white" : "text-ink/80"}`}>{l.label}</NavLink>
           ))}
@@ -90,6 +119,7 @@ export default function Navbar({ updates = 0 }) {
             </div>
           ))}
           <Link to="/become-a-skillcoach" className="mt-3 block rounded-xl bg-gold px-4 py-3 text-center text-[16px] font-bold text-ink">Become a SkillCoach</Link>
+          <button onClick={handleSignOut} className="mt-2 w-full rounded-xl px-4 py-3 text-left text-[15px] font-semibold text-crimson">Sign out</button>
         </div>
       )}
     </div>

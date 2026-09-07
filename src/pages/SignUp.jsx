@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { register } from "../lib/api";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const SLUG_RE = /^[a-zA-Z0-9_-]+$/;
@@ -71,6 +72,7 @@ export default function SignUp({ onNavigateToLogin, onSuccess }) {
   const [touched, setTouched] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [formError, setFormError] = useState("");
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -93,7 +95,7 @@ export default function SignUp({ onNavigateToLogin, onSuccess }) {
         break;
       case "password":
         if (!value) error = "Password is required";
-        else if (value.length < 6) error = "Password must be at least 6 characters in length";
+        else if (value.length < 8) error = "Password must be at least 8 characters in length";
         break;
       case "passwordAgain":
         if (!value) error = "Please confirm your password";
@@ -117,7 +119,7 @@ export default function SignUp({ onNavigateToLogin, onSuccess }) {
     setTimeout(() => setCaptchaStatus("verified"), 900);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setTouched(Object.fromEntries(Object.keys(formData).map((k) => [k, true])));
 
@@ -128,14 +130,23 @@ export default function SignUp({ onNavigateToLogin, onSuccess }) {
     });
     if (captchaStatus !== "verified") v.captcha = "Please complete the human verification.";
     setErrors(v);
+    if (Object.keys(v).length) return;
 
-    if (Object.keys(v).length === 0) {
-      setIsSubmitting(true);
-      setTimeout(() => {
-        setIsSubmitting(false);
-        setSubmitted(true);
-        onSuccess?.(formData);
-      }, 1200);
+    setFormError("");
+    setIsSubmitting(true);
+    try {
+      const { user } = await register({
+        email: formData.email,
+        username: formData.displayName,
+        displayname: `${formData.firstName} ${formData.lastName}`.trim(),
+        password: formData.password,
+      });
+      setSubmitted(true);
+      onSuccess?.(user);
+    } catch (err) {
+      setFormError(err.message || "Something went wrong, please try again.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -154,7 +165,7 @@ export default function SignUp({ onNavigateToLogin, onSuccess }) {
             </div>
             <h2 className="text-[28px] font-extrabold tracking-tight text-ink">Account created</h2>
             <p className="mt-2 max-w-md text-[15px] leading-7 text-ink/65">
-              Welcome aboard, <span className="font-semibold text-ink">{formData.firstName}</span>! We sent a confirmation link to{" "}
+              Welcome aboard, <span className="font-semibold text-ink">{formData.firstName}</span>! Your account is ready and you're signed in as{" "}
               <span className="font-semibold text-ink">{formData.email}</span>.
             </p>
 
@@ -187,6 +198,12 @@ export default function SignUp({ onNavigateToLogin, onSuccess }) {
             </div>
 
             <form onSubmit={handleSubmit} noValidate className="space-y-6">
+              {formError && (
+                <p className="flex items-center gap-1.5 rounded-xl bg-red-50 px-4 py-3 text-[14px] font-medium text-red-600 ring-1 ring-red-100">
+                  <svg className="h-4 w-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" /></svg>
+                  {formError}
+                </p>
+              )}
               <div className="grid gap-5 sm:grid-cols-2">
                 <div>
                   <label htmlFor="firstName" className={labelCls}>First name <span className="text-gold-deep">*</span></label>
@@ -237,7 +254,7 @@ export default function SignUp({ onNavigateToLogin, onSuccess }) {
                       className={`${inputBase} pr-12 ${err("password") ? inputErr : inputOk}`} />
                     <EyeButton shown={showPassword} onToggle={() => setShowPassword((s) => !s)} label="password" />
                   </div>
-                  <p className={hintCls}>At least 6 characters.</p>
+                  <p className={hintCls}>At least 8 characters.</p>
                   {err("password") && <ErrorText>{errors.password}</ErrorText>}
                 </div>
                 <div>
