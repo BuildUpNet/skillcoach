@@ -66,42 +66,77 @@ authRouter.post('/register', registerLimiter, async (req, res) => {
   res.status(201).json({ user: publicUser(user) })
 })
 
-authRouter.post('/login', loginLimiter, async (req, res) => {
-  const { email, password } = req.body || {}
-  if (!email || !password) return res.status(400).json({ error: 'Email and password are required' })
+// authRouter.post('/login', loginLimiter, async (req, res) => {
+//   const { email, password } = req.body || {}
+//   if (!email || !password) return res.status(400).json({ error: 'Email and password are required' })
 
-  const [rows] = await pool.query('SELECT * FROM engine4_users WHERE email = ? LIMIT 1', [email])
+//   const [rows] = await pool.query('SELECT * FROM engine4_users WHERE email = ? LIMIT 1', [email])
+//   const user = rows[0]
+
+//   // Same generic message either way — never reveal whether the email exists.
+//   const invalidCreds = () => res.status(401).json({ error: 'Invalid email or password' })
+
+//   if (!user) {
+//     await logAttempt(pool, { email, ip: req.ip, state: 'no-member' })
+//     return invalidCreds()
+//   }
+
+//   const ok = await verifyPassword(password, user.salt, user.password)
+//   if (!ok) {
+//     await logAttempt(pool, { user_id: user.user_id, email, ip: req.ip, state: 'bad-password' })
+//     return invalidCreds()
+//   }
+
+//   if (!user.enabled || !user.verified || !user.approved) {
+//     await logAttempt(pool, { user_id: user.user_id, email, ip: req.ip, state: 'disabled' })
+//     return res.status(403).json({ error: 'This account is disabled or not yet approved' })
+//   }
+
+//   await pool.query(
+//     `UPDATE engine4_users SET lastlogin_date = NOW(), lastlogin_ip = INET6_ATON(?) WHERE user_id = ?`,
+//     [req.ip, user.user_id],
+//   )
+//   await logAttempt(pool, { user_id: user.user_id, email, ip: req.ip, state: 'success' })
+
+//   const token = signSession(user)
+//   setSessionCookie(res, token)
+//   res.json({ user: publicUser(user) })
+// })
+
+
+authRouter.post('/login', loginLimiter, async (req, res) => {
+  console.log('LOGIN START')
+
+  const { email, password } = req.body || {}
+  if (!email || !password) {
+    console.log('LOGIN: missing credentials')
+    return res.status(400).json({ error: 'Email and password are required' })
+  }
+
+  console.log('LOGIN: before SELECT')
+
+  const [rows] = await pool.query(
+    'SELECT * FROM engine4_users WHERE email = ? LIMIT 1',
+    [email],
+  )
+
+  console.log('LOGIN: after SELECT')
+
   const user = rows[0]
 
-  // Same generic message either way — never reveal whether the email exists.
-  const invalidCreds = () => res.status(401).json({ error: 'Invalid email or password' })
-
   if (!user) {
+    console.log('LOGIN: user not found')
     await logAttempt(pool, { email, ip: req.ip, state: 'no-member' })
-    return invalidCreds()
+    return res.status(401).json({ error: 'Invalid email or password' })
   }
+
+  console.log('LOGIN: before verifyPassword')
 
   const ok = await verifyPassword(password, user.salt, user.password)
-  if (!ok) {
-    await logAttempt(pool, { user_id: user.user_id, email, ip: req.ip, state: 'bad-password' })
-    return invalidCreds()
-  }
 
-  if (!user.enabled || !user.verified || !user.approved) {
-    await logAttempt(pool, { user_id: user.user_id, email, ip: req.ip, state: 'disabled' })
-    return res.status(403).json({ error: 'This account is disabled or not yet approved' })
-  }
+  console.log('LOGIN: after verifyPassword', ok)
 
-  await pool.query(
-    `UPDATE engine4_users SET lastlogin_date = NOW(), lastlogin_ip = INET6_ATON(?) WHERE user_id = ?`,
-    [req.ip, user.user_id],
-  )
-  await logAttempt(pool, { user_id: user.user_id, email, ip: req.ip, state: 'success' })
-
-  const token = signSession(user)
-  setSessionCookie(res, token)
-  res.json({ user: publicUser(user) })
-})
+  // leave everything below this point exactly as it currently is
 
 authRouter.post('/logout', (req, res) => {
   clearSessionCookie(res)
