@@ -74,19 +74,14 @@ export default function AppRoutes() {
         <Route path="/profile/:username" element={<MemberProfile />} />
         <Route path="/settings" element={<SettingsGeneral />} />
         <Route path="/settings/:tab" element={<SettingsGeneral />} />
-         <Route path="/instruction" element={<Instruction />} />
-         <Route path="/messages" element={<Messages />} />
-         <Route path="/badges" element={<Badges/>} />
-         <Route path="/notes" element={<Notes />} />
+        <Route path="/instruction" element={<Instruction />} />
+        <Route path="/messages" element={<Messages />} />
+        <Route path="/badges" element={<Badges />} />
+        <Route path="/notes" element={<Notes />} />
         <Route path="/credits" element={<Credits />} />
-        <Route
-          path="/privacy"
-          element={<SettingsGeneral defaultTab="Privacy" />}
-        />
-        <Route
-          path="/timeline"
-          element={<SettingsGeneral defaultTab="Timeline" />}
-        />
+        <Route path="/privacy" element={<SettingsGeneral defaultTab="Privacy" />} />
+        <Route path="/timeline" element={<SettingsGeneral defaultTab="Timeline" />} />
+        <Route path="/change-password" element={<SettingsGeneral defaultTab="Change Password" />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>
