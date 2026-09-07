@@ -98,8 +98,10 @@ export default function AppRoutes() {
           element={<SettingsGeneral defaultTab="Timeline" />}
         />
         <Route path="/privacy" element={<SettingsGeneral defaultTab="Privacy" />} />
+        <Route path="/notifications" element={<SettingsGeneral defaultTab="Notifications" />} />
         <Route path="/timeline" element={<SettingsGeneral defaultTab="Timeline" />} />
         <Route path="/change-password" element={<SettingsGeneral defaultTab="Change Password" />} />
+        <Route path="/delete-account" element={<SettingsGeneral defaultTab="Delete Account" />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>
