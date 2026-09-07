@@ -350,11 +350,11 @@ export default function Instruction() {
   const totalLessons = allLessons.length;
 
   return (
-    <div className="max-w-[1400px] mx-auto px-8 py-6">
+    <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
 
       {/*Hero Section*/}
 
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-forest to-forest-deep px-10 py-10 grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-8">
+      <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-gradient-to-br from-forest to-forest-deep px-5 py-7 sm:p-8 lg:p-10 grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-6 lg:gap-8">
         {/* dot-grid texture */}
         <div
           className="pointer-events-none absolute inset-0"
@@ -368,16 +368,16 @@ export default function Instruction() {
         <div className="pointer-events-none absolute -bottom-32 -right-24 h-96 w-96 rounded-full bg-crimson/20 blur-[100px]" />
 
         <div className="relative z-10">
-          <p className="text-gold text-sm font-semibold mb-3">Instruction</p>
-          <h1 className="text-white text-4xl font-extrabold leading-tight max-w-xl">
+          <p className="text-gold text-xs sm:text-sm font-semibold mb-2 sm:mb-3">Instruction</p>
+          <h1 className="text-white text-2xl sm:text-3xl lg:text-4xl font-extrabold leading-tight max-w-xl">
             Learn the platform, one lesson at a time.
           </h1>
-          <p className="text-white/70 mt-3.5 max-w-md text-[15px] leading-relaxed">
+          <p className="text-white/70 mt-2.5 sm:mt-3.5 max-w-md text-sm sm:text-[15px] leading-relaxed">
             Short videos from your coaches, organized by what you're trying to get done — not a
             wall of uploads to scroll through.
           </p>
 
-          <div className="mt-7 flex items-center gap-2 bg-white/10 border border-white/15 rounded-full px-4 py-2.5 max-w-md">
+          <div className="mt-5 sm:mt-7 flex items-center gap-2 bg-white/10 border border-white/15 rounded-full px-3.5 sm:px-4 py-2 sm:py-2.5 max-w-md">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-white/50 shrink-0">
               <circle cx="11" cy="11" r="7" />
               <path d="m21 21-4.3-4.3" />
@@ -392,32 +392,32 @@ export default function Instruction() {
           </div>
         </div>
 
-        <div className="relative z-10 flex flex-col gap-4">
-          <div className="grid grid-cols-3 gap-3">
-            <div className="bg-white/8 border border-white/10 rounded-2xl p-4">
-              <strong className="block text-2xl font-extrabold text-gold">{totalLessons}</strong>
-              <span className="text-xs text-white/60">Lessons</span>
+        <div className="relative z-10 flex flex-col gap-3 sm:gap-4">
+          <div className="grid grid-cols-3 gap-2 sm:gap-3 w-full min-w-0">
+            <div className="bg-white/10 border border-white/10 rounded-xl sm:rounded-2xl p-2.5 sm:p-4 text-center sm:text-left min-w-0 flex flex-col justify-center">
+              <strong className="block text-lg sm:text-2xl lg:text-3xl font-extrabold text-gold leading-tight truncate">{totalLessons}</strong>
+              <span className="block text-[11px] sm:text-xs text-white/70 font-medium truncate mt-0.5">Lessons</span>
             </div>
-            <div className="bg-white/8 border border-white/10 rounded-2xl p-4">
-              <strong className="block text-2xl font-extrabold text-gold">{CATEGORIES.length}</strong>
-              <span className="text-xs text-white/60">Categories</span>
+            <div className="bg-white/10 border border-white/10 rounded-xl sm:rounded-2xl p-2.5 sm:p-4 text-center sm:text-left min-w-0 flex flex-col justify-center">
+              <strong className="block text-lg sm:text-2xl lg:text-3xl font-extrabold text-gold leading-tight truncate">{CATEGORIES.length}</strong>
+              <span className="block text-[11px] sm:text-xs text-white/70 font-medium truncate mt-0.5">Categories</span>
             </div>
-            <div className="bg-white/8 border border-white/10 rounded-2xl p-4">
-              <strong className="block text-2xl font-extrabold text-gold">~2.5h</strong>
-              <span className="text-xs text-white/60">Runtime</span>
+            <div className="bg-white/10 border border-white/10 rounded-xl sm:rounded-2xl p-2.5 sm:p-4 text-center sm:text-left min-w-0 flex flex-col justify-center">
+              <strong className="block text-lg sm:text-2xl lg:text-3xl font-extrabold text-gold leading-tight truncate">~2.5h</strong>
+              <span className="block text-[11px] sm:text-xs text-white/70 font-medium truncate mt-0.5">Runtime</span>
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl p-6 shadow-lg flex-1 flex flex-col justify-center">
-            <p className="text-ink font-semibold text-[15px] mb-1">
+          <div className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-lg flex-1 flex flex-col justify-center">
+            <p className="text-ink font-semibold text-sm sm:text-[15px] mb-1">
               Only SkillCoaches can publish lessons.
             </p>
-            <p className="text-ink/55 text-[13px] mb-4">
+            <p className="text-ink/55 text-xs sm:text-[13px] mb-3 sm:mb-4">
               Become a coach to record lessons and share them with your group.
             </p>
             <button
               type="button"
-              className="self-start bg-gold hover:bg-gold-deep text-ink font-semibold text-sm px-5 py-2.5 rounded-lg transition-colors"
+              className="self-start bg-gold hover:bg-gold-deep text-ink font-semibold text-xs sm:text-sm px-4 sm:px-5 py-2 sm:py-2.5 rounded-lg transition-colors"
             >
               Become a SkillCoach
             </button>

@@ -24,7 +24,8 @@ import Instruction from "../pages/Instruction";
 import Messages from "../pages/Messages";
 import Badges from "../pages/Badges";
 import Notes from "../pages/Notes";
-import Credits from "../pages/Credits"
+import Credits from "../pages/Credits";
+import Members from "../pages/Members";
 function SignInWrapper() {
   const navigate = useNavigate();
   return (
@@ -79,6 +80,7 @@ export default function AppRoutes() {
         <Route path="/badges" element={<Badges />} />
         <Route path="/notes" element={<Notes />} />
         <Route path="/credits" element={<Credits />} />
+        <Route path="/members" element={<Members />} />
         <Route path="/privacy" element={<SettingsGeneral defaultTab="Privacy" />} />
         <Route path="/notifications" element={<SettingsGeneral defaultTab="Notifications" />} />
         <Route path="/timeline" element={<SettingsGeneral defaultTab="Timeline" />} />
