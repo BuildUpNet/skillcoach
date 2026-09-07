@@ -24,6 +24,11 @@ import Messages from "../pages/Messages";
 import Badges from "../pages/Badges";
 import Notes from "../pages/Notes";
 import Credits from "../pages/Credits"
+import CoachesCorner from "../pages/CoachesCorner";
+import Members from "../pages/Member";
+import Forums from "../pages/forum/Forums";
+import ForumTopics from "../pages/forum/ForumTopics";
+import ForumTopic from "../pages/forum/ForumTopic";
 function SignInWrapper() {
   const navigate = useNavigate();
   return (
@@ -77,6 +82,11 @@ export default function AppRoutes() {
          <Route path="/badges" element={<Badges/>} />
          <Route path="/notes" element={<Notes />} />
         <Route path="/credits" element={<Credits />} />
+        <Route path="/coaches-corner" element={<CoachesCorner />} />
+        <Route path="/members" element={<Members />} />
+        <Route path="/forums" element={<Forums />} />
+        <Route path="/forums/:forumId/:forumSlug" element={<ForumTopics />} />
+        <Route path="/forums/topic/:topicId/:topicSlug" element={<ForumTopic />} />
         <Route
           path="/privacy"
           element={<SettingsGeneral defaultTab="Privacy" />}

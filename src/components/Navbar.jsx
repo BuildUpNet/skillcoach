@@ -11,7 +11,7 @@ const links = [
 ];
 
 const more = [
-  ["Community", [["Coaches corner", "/coaches-corner"], ["Members", "/members"], ["Forum", "/forum"], ["Summary", "/summary"]]],
+  ["Community", [["Coaches corner", "/coaches-corner"], ["Members", "/members"], ["Forum", "/forums"], ["Summary", "/summary"]]],
   ["Account", [["My profile", "/profile/:sourabh"], ["Messages", "/messages"], ["Settings", "/settings"]]],
 ];
 
