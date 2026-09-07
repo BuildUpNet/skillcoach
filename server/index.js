@@ -5,7 +5,7 @@ import { pool } from './db.js'
 import { authRouter } from './routes/auth.js'
 
 const app = express()
-
+app.set('trust proxy', 1)
 // credentials:true + an explicit origin (not "*") is required for the
 // httpOnly session cookie to be sent/accepted cross-origin
 app.use(
