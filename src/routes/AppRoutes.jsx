@@ -19,7 +19,11 @@ import CreateGroup from "../pages/CreateGroup";
 import BrowseGroups from "../pages/BrowseGroups";
 import SettingsGeneral from "../pages/SettingsGeneral";
 import MemberProfile from "../pages/MemberProfile";
-
+import Instruction from "../pages/Instruction";
+import Messages from "../pages/Messages";
+import Badges from "../pages/Badges";
+import Notes from "../pages/Notes";
+import Credits from "../pages/Credits"
 function SignInWrapper() {
   const navigate = useNavigate();
   return (
@@ -68,6 +72,11 @@ export default function AppRoutes() {
         <Route path="/profile/:username" element={<MemberProfile />} />
         <Route path="/settings" element={<SettingsGeneral />} />
         <Route path="/settings/:tab" element={<SettingsGeneral />} />
+         <Route path="/instruction" element={<Instruction />} />
+         <Route path="/messages" element={<Messages />} />
+         <Route path="/badges" element={<Badges/>} />
+         <Route path="/notes" element={<Notes />} />
+        <Route path="/credits" element={<Credits />} />
         <Route
           path="/privacy"
           element={<SettingsGeneral defaultTab="Privacy" />}
