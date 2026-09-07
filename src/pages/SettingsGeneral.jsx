@@ -445,6 +445,107 @@ function TimelinePanel() {
   );
 }
 
+/* ============================== Change Password tab ============================== */
+
+function ChangePasswordPanel() {
+  const [oldPassword, setOldPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [errors, setErrors] = useState({});
+  const [status, setStatus] = useState(null); // null | "saving" | "saved"
+
+  const handleSubmit = (e) => {
+    if (e) e.preventDefault();
+    const next = {};
+    if (!oldPassword) next.oldPassword = "Enter your current password.";
+    if (newPassword.length < 6) next.newPassword = "Passwords must be at least 6 characters in length.";
+    if (confirmPassword !== newPassword) next.confirmPassword = "Passwords do not match.";
+    setErrors(next);
+    if (Object.keys(next).length) return;
+
+    setStatus("saving");
+    setTimeout(() => {
+      setStatus("saved");
+      setOldPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setTimeout(() => setStatus(null), 3000);
+    }, 500);
+  };
+
+  return (
+    <SettingsCard
+      title="Change Password"
+      description="Update your account password to keep your profile secure."
+      footer={
+        <SaveFooter
+          saved={status === "saved"}
+          onSave={handleSubmit}
+          variant="timeline"
+          label={status === "saving" ? "Changing…" : "Change Password"}
+          savedText="Password changed."
+        />
+      }
+    >
+      <form onSubmit={handleSubmit} noValidate>
+        <Field label="Old Password">
+          <div className="max-w-md">
+            <input
+              type="password"
+              value={oldPassword}
+              onChange={(e) => {
+                setOldPassword(e.target.value);
+                if (errors.oldPassword) setErrors((prev) => ({ ...prev, oldPassword: null }));
+              }}
+              autoComplete="current-password"
+              className={`${inputClass} max-w-md ${errors.oldPassword ? "!border-red-500 !ring-red-500/20" : ""}`}
+            />
+            {errors.oldPassword && <p className="mt-1 text-xs text-red-600">{errors.oldPassword}</p>}
+          </div>
+        </Field>
+
+        <Field
+          label="New Password"
+          hint="Passwords must be at least 6 characters in length."
+        >
+          <div className="max-w-md">
+            <input
+              type="password"
+              value={newPassword}
+              onChange={(e) => {
+                setNewPassword(e.target.value);
+                if (errors.newPassword) setErrors((prev) => ({ ...prev, newPassword: null }));
+              }}
+              autoComplete="new-password"
+              className={`${inputClass} max-w-md ${errors.newPassword ? "!border-red-500 !ring-red-500/20" : ""}`}
+            />
+            {errors.newPassword && <p className="mt-1 text-xs text-red-600">{errors.newPassword}</p>}
+          </div>
+        </Field>
+
+        <Field
+          label="New Password (again)"
+          hint="Enter your password again for confirmation."
+        >
+          <div className="max-w-md">
+            <input
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => {
+                setConfirmPassword(e.target.value);
+                if (errors.confirmPassword) setErrors((prev) => ({ ...prev, confirmPassword: null }));
+              }}
+              autoComplete="new-password"
+              className={`${inputClass} max-w-md ${errors.confirmPassword ? "!border-red-500 !ring-red-500/20" : ""}`}
+            />
+            {errors.confirmPassword && <p className="mt-1 text-xs text-red-600">{errors.confirmPassword}</p>}
+          </div>
+        </Field>
+      </form>
+    </SettingsCard>
+  );
+}
+
 /* ============================== placeholder for remaining tabs ============================== */
 
 function ComingSoonPanel({ tab }) {
@@ -464,7 +565,11 @@ export default function SettingsGeneral({ defaultTab = "General" }) {
   // Determine initial tab from props, url param, or default
   const getTabFromUrl = (val) => {
     if (!val) return defaultTab;
-    const match = TABS.find((t) => t.toLowerCase().replace(/\s+/g, "-") === val.toLowerCase().replace(/\s+/g, "-") || t.toLowerCase() === val.toLowerCase());
+    const clean = val.toLowerCase().replace(/[\s-_]+/g, "");
+    const match = TABS.find((t) => {
+      const tClean = t.toLowerCase().replace(/[\s-_]+/g, "");
+      return tClean === clean || (clean === "password" && tClean === "changepassword");
+    });
     return match || defaultTab;
   };
 
@@ -490,6 +595,8 @@ export default function SettingsGeneral({ defaultTab = "General" }) {
         return <PrivacyPanel />;
       case "Timeline":
         return <TimelinePanel />;
+      case "Change Password":
+        return <ChangePasswordPanel />;
       default:
         return <ComingSoonPanel tab={activeTab} />;
     }

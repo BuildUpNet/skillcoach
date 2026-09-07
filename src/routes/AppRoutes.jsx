@@ -41,6 +41,7 @@ export default function AppRoutes() {
         <Route path="/settings/:tab" element={<SettingsGeneral />} />
         <Route path="/privacy" element={<SettingsGeneral defaultTab="Privacy" />} />
         <Route path="/timeline" element={<SettingsGeneral defaultTab="Timeline" />} />
+        <Route path="/change-password" element={<SettingsGeneral defaultTab="Change Password" />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>
