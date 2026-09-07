@@ -16,6 +16,7 @@ import GroupLessons from "../pages/group/Lessons";
 import GroupTasks from "../pages/group/Tasks";
 import TaskDetail from "../pages/group/TaskDetail";
 import CreateGroup from "../pages/CreateGroup";
+import EditGroup from "../pages/EditGroup";
 import BrowseGroups from "../pages/BrowseGroups";
 import SettingsGeneral from "../pages/SettingsGeneral";
 import MemberProfile from "../pages/MemberProfile";
@@ -68,6 +69,7 @@ export default function AppRoutes() {
           <Route path="tasks/:taskId" element={<TaskDetail />} />
         </Route>
         <Route path="/group/create" element={<CreateGroup />} />
+        <Route path="/group/edit/:groupId" element={<EditGroup />} />
         <Route path="/group/browser" element={<BrowseGroups />} />
         <Route path="/profile/:username" element={<MemberProfile />} />
         <Route path="/settings" element={<SettingsGeneral />} />

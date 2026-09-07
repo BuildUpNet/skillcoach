@@ -1,17 +1,28 @@
 import { Link, useNavigate } from "react-router-dom";
 import CreateGroupForm from "../components/CreateGroupForm";
+import { createGroup } from "../lib/api";
 
 export default function CreateGroup() {
   const navigate = useNavigate();
 
-  const handleSave = (data) => {
-    const newGroup = {
-      id: Date.now(),
-      name: data.name,
+  const handleSave = async (data) => {
+    const created = await createGroup({
+      title: data.name,
       description: data.description,
-      members: 1,
+      category_id: data.category,
+      search: data.searchable === "yes",
+      invite: data.memberInvites === "yes",
+      approval: data.approval === "approve",
+      summary_emails: data.dailySummary,
+    });
+    const newGroup = {
+      id: created.group_id,
+      name: created.title,
+      description: created.description,
+      members: created.member_count,
       leader: "You",
-      image: data.photo ? URL.createObjectURL(data.photo) : "/groups/std.png",
+      image: null,
+      memberList: [],
     };
     // Projects page picks this up from location.state and adds it to the list
     navigate("/projects", { state: { newGroup } });

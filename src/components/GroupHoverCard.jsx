@@ -29,7 +29,13 @@ export default function GroupHoverCard({ group, onLeave, children }) {
           <span className="absolute left-6 top-[7px] h-3 w-3 rotate-45 border-l border-t border-line bg-white" />
           <div className="overflow-hidden rounded-2xl bg-white shadow-[0_24px_60px_-24px_rgba(20,26,24,.45)] ring-1 ring-line">
             <div className="flex gap-4 p-4">
-              <img src={group.image} alt="" className="h-20 w-20 flex-none rounded-xl object-cover ring-1 ring-line" />
+              {group.image ? (
+                <img src={group.image} alt="" className="h-20 w-20 flex-none rounded-xl object-cover ring-1 ring-line" />
+              ) : (
+                <div className="grid h-20 w-20 flex-none place-items-center rounded-xl bg-forest-soft text-[22px] font-extrabold text-forest ring-1 ring-line">
+                  {group.name.trim()[0].toUpperCase()}
+                </div>
+              )}
               <div className="min-w-0 flex-1">
                 <Link to={`/groups/${group.id}`} className="block truncate text-[18px] font-extrabold tracking-tight text-ink hover:text-forest">{group.name}</Link>
                 <p className="mt-0.5 text-[14px] text-ink/55">{group.members} members · led by <span className="font-semibold text-ink/80">{group.leader}</span></p>
@@ -52,10 +58,13 @@ export default function GroupHoverCard({ group, onLeave, children }) {
 
             <div className="flex items-center justify-between border-t border-line bg-mist px-4 py-2.5">
               <Link to={`/groups/${group.id}`} className="text-[14px] font-bold text-forest hover:underline">Open group</Link>
-              <button onClick={() => onLeave?.(group.id)} className="inline-flex items-center gap-1.5 text-[14px] font-semibold text-ink/55 hover:text-crimson">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M6 6l12 12M18 6L6 18" /></svg>
-                Leave group
-              </button>
+              <div className="flex items-center gap-3">
+                <Link to={`/group/edit/${group.id}`} className="text-[14px] font-semibold text-ink/55 hover:text-forest">Edit</Link>
+                <button onClick={() => onLeave?.(group.id)} className="inline-flex items-center gap-1.5 text-[14px] font-semibold text-ink/55 hover:text-crimson">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M6 6l12 12M18 6L6 18" /></svg>
+                  Delete
+                </button>
+              </div>
             </div>
           </div>
         </div>
