@@ -134,9 +134,70 @@ authRouter.post('/login', loginLimiter, async (req, res) => {
 
   const ok = await verifyPassword(password, user.salt, user.password)
 
-  console.log('LOGIN: after verifyPassword', ok)
+    console.log('LOGIN: after verifyPassword', ok)
 
-  // leave everything below this point exactly as it currently is
+  if (!ok) {
+    await logAttempt(pool, {
+      user_id: user.user_id,
+      email: user.email,
+      ip: req.ip,
+      state: 'bad-password',
+    })
+
+    console.log('LOGIN: bad password')
+
+    return res.status(401).json({
+      error: 'Invalid email or password',
+    })
+  }
+
+  if (!user.enabled || !user.verified || !user.approved) {
+    console.log('LOGIN: account disabled/unapproved')
+
+    await logAttempt(pool, {
+      user_id: user.user_id,
+      email: user.email,
+      ip: req.ip,
+      state: 'disabled',
+    })
+
+    return res.status(403).json({
+      error: 'This account is disabled or not yet approved',
+    })
+  }
+
+  console.log('LOGIN: before lastlogin UPDATE')
+
+  await pool.query(
+    `UPDATE engine4_users
+     SET lastlogin_date = NOW(), lastlogin_ip = INET6_ATON(?)
+     WHERE user_id = ?`,
+    [req.ip, user.user_id],
+  )
+
+  console.log('LOGIN: after lastlogin UPDATE')
+
+  await logAttempt(pool, {
+    user_id: user.user_id,
+    email: user.email,
+    ip: req.ip,
+    state: 'success',
+  })
+
+  console.log('LOGIN: attempt logged')
+
+  const token = signSession(user)
+
+  console.log('LOGIN: JWT created')
+
+  setSessionCookie(res, token)
+
+  console.log('LOGIN: sending response')
+
+  return res.json({
+    user: publicUser(user),
+  })
+})
 
 authRouter.post('/logout', (req, res) => {
   clearSessionCookie(res)
