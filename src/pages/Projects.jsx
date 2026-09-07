@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import GroupCard from "../components/GroupCard";
+import { CURRENT_USER_ID, deleteGroup, getGroups } from "../lib/api";
 
 const TABS = [
   { key: "browse", label: "Browse groups", to: "/group/browser" },
@@ -8,17 +9,32 @@ const TABS = [
   { key: "create", label: "Create new group", to: "/group/create" },
 ];
 
-const initialGroups = [
-  { id: 1, name: "STD work", description: "Work on Stock Traders Daily", members: 10, leader: "Thomas Kee", image: "/groups/std.png" },
-];
+const toCard = (g) => ({
+  id: g.group_id,
+  name: g.title,
+  description: g.description,
+  members: g.member_count,
+  leader: g.user_id === CURRENT_USER_ID ? "You" : `User #${g.user_id}`,
+  image: null,
+  memberList: [],
+});
 
 export default function Projects() {
   const navigate = useNavigate();
   const location = useLocation();
 
   const [tab, setTab] = useState("mine");
-  const [groups, setGroups] = useState(initialGroups);
+  const [groups, setGroups] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [q, setQ] = useState("");
+
+  useEffect(() => {
+    getGroups()
+      .then((rows) => setGroups(rows.map(toCard)))
+      .catch((err) => setError(err.message))
+      .finally(() => setLoading(false));
+  }, []);
 
   // pick up a group created on /group/create
   useEffect(() => {
@@ -31,7 +47,10 @@ export default function Projects() {
   }, [location, navigate]);
 
   const selectTab = (t) => (t.to ? navigate(t.to) : setTab(t.key));
-  const leaveGroup = (id) => setGroups((g) => g.filter((x) => x.id !== id));
+  const leaveGroup = async (id) => {
+    await deleteGroup(id);
+    setGroups((g) => g.filter((x) => x.id !== id));
+  };
 
   const visible = groups.filter((g) => g.name.toLowerCase().includes(q.toLowerCase()));
   const people = groups.reduce((n, g) => n + g.members, 0);
@@ -95,19 +114,29 @@ export default function Projects() {
         </label>
       </section>
 
+      {error && <p className="mt-6 rounded-xl bg-crimson/10 px-4 py-3 text-[15px] font-medium text-crimson">{error}</p>}
+
       {/* grid */}
-      <section className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {visible.map((g) => <GroupCard key={g.id} group={g} onLeave={leaveGroup} />)}
+      {!error && (
+        <section className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {loading ? (
+            <p className="text-[15px] text-ink/60">Loading groups…</p>
+          ) : (
+            visible.map((g) => (
+              <GroupCard key={g.id} group={g} onLeave={leaveGroup} onOpen={(id) => navigate(`/projects/${id}`)} />
+            ))
+          )}
 
-        <button onClick={() => navigate("/group/create")}
-          className="group flex min-h-[320px] flex-col items-center justify-center rounded-3xl border-2 border-dashed border-gold/60 bg-gold-soft/60 p-8 text-center transition-colors hover:border-gold hover:bg-gold-soft">
-          <span className="grid h-14 w-14 place-items-center rounded-full bg-gold text-3xl font-bold text-ink transition-transform group-hover:scale-110">+</span>
-          <span className="mt-4 text-[18px] font-extrabold">Create a new group</span>
-          <span className="mt-1 max-w-[26ch] text-[14.5px] text-ink/60">Available to SkillCoaches. Invite members and start a project.</span>
-        </button>
-      </section>
+          <button onClick={() => navigate("/group/create")}
+            className="group flex min-h-[320px] flex-col items-center justify-center rounded-3xl border-2 border-dashed border-gold/60 bg-gold-soft/60 p-8 text-center transition-colors hover:border-gold hover:bg-gold-soft">
+            <span className="grid h-14 w-14 place-items-center rounded-full bg-gold text-3xl font-bold text-ink transition-transform group-hover:scale-110">+</span>
+            <span className="mt-4 text-[18px] font-extrabold">Create a new group</span>
+            <span className="mt-1 max-w-[26ch] text-[14.5px] text-ink/60">Available to SkillCoaches. Invite members and start a project.</span>
+          </button>
+        </section>
+      )}
 
-      {!visible.length && q && <p className="mt-6 text-center text-[15px] text-ink/60">No groups match "{q}".</p>}
+      {!loading && !visible.length && q && <p className="mt-6 text-center text-[15px] text-ink/60">No groups match "{q}".</p>}
     </div>
   );
 }

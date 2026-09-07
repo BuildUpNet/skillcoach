@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
+import { getCategories } from "../lib/api";
 
-const CATEGORIES = ["Business", "Education", "Technology", "Health & Fitness", "Arts & Culture", "Finance & Trading", "Personal Development", "Other"];
 const PRIVACY = ["Everyone", "Registered Members", "Group Members Only", "Officers Only"];
 
 const initial = {
@@ -59,13 +59,19 @@ function PrivacySelect({ id, title, question, value, onChange }) {
   );
 }
 
-export default function CreateGroupForm({ onCancel, onSave }) {
-  const [data, setData] = useState(initial);
+export default function CreateGroupForm({ onCancel, onSave, initialData, submitLabel = "Create group" }) {
+  const [data, setData] = useState(() => ({ ...initial, ...initialData }));
   const [errors, setErrors] = useState({});
   const [preview, setPreview] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
+  const [categories, setCategories] = useState([]);
 
   const set = (k) => (v) => { setData((d) => ({ ...d, [k]: v })); if (errors[k]) setErrors((e) => ({ ...e, [k]: "" })); };
+
+  useEffect(() => {
+    getCategories().then(setCategories).catch(() => setCategories([]));
+  }, []);
 
   useEffect(() => {
     if (!data.photo) { setPreview(null); return; }
@@ -74,7 +80,7 @@ export default function CreateGroupForm({ onCancel, onSave }) {
     return () => URL.revokeObjectURL(url);
   }, [data.photo]);
 
-  const submit = (e) => {
+  const submit = async (e) => {
     e.preventDefault();
     const v = {};
     if (!data.name.trim()) v.name = "Group name is required";
@@ -82,8 +88,15 @@ export default function CreateGroupForm({ onCancel, onSave }) {
     if (!data.category) v.category = "Pick a category";
     setErrors(v);
     if (Object.keys(v).length) return;
+    setSaveError("");
     setSaving(true);
-    setTimeout(() => { setSaving(false); onSave?.(data); }, 900);
+    try {
+      await onSave?.(data);
+    } catch (err) {
+      setSaveError(err.message || "Something went wrong, please try again.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -133,7 +146,7 @@ export default function CreateGroupForm({ onCancel, onSave }) {
                 <div className="relative mt-2">
                   <select id="category" value={data.category} onChange={(e) => set("category")(e.target.value)} className={`${field} cursor-pointer appearance-none pr-12 ${!data.category ? "text-ink/40" : ""}`}>
                     <option value="">Choose a category</option>
-                    {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                    {categories.map((c) => <option key={c.category_id} value={c.category_id}>{c.title}</option>)}
                   </select>
                   <svg className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
                 </div>
@@ -204,7 +217,11 @@ export default function CreateGroupForm({ onCancel, onSave }) {
             <h3 className="mt-1 truncate text-[20px] font-extrabold tracking-tight text-ink">{data.name.trim() || "Your group name"}</h3>
             <p className="mt-1 line-clamp-3 text-[14.5px] leading-6 text-ink/65">{data.description.trim() || "Your description will appear here."}</p>
             <div className="mt-4 flex flex-wrap gap-2 text-[12.5px] font-semibold">
-              {data.category && <span className="rounded-full bg-forest-soft px-2.5 py-1 text-forest">{data.category}</span>}
+              {data.category && (
+                <span className="rounded-full bg-forest-soft px-2.5 py-1 text-forest">
+                  {categories.find((c) => String(c.category_id) === String(data.category))?.title || "…"}
+                </span>
+              )}
               <span className="rounded-full bg-mist px-2.5 py-1 text-ink/60">{data.viewPrivacy}</span>
               <span className="rounded-full bg-mist px-2.5 py-1 text-ink/60">{data.approval === "approve" ? "Approval required" : "Open to join"}</span>
             </div>
@@ -212,9 +229,10 @@ export default function CreateGroupForm({ onCancel, onSave }) {
         </div>
 
         <div className="rounded-3xl bg-white p-5 ring-1 ring-line">
+          {saveError && <p className="mb-3 rounded-lg bg-crimson/10 px-3 py-2 text-[13.5px] font-medium text-crimson">{saveError}</p>}
           <button type="submit" disabled={saving}
             className="inline-flex w-full items-center justify-center rounded-xl bg-forest px-5 py-3.5 text-[16px] font-bold text-white shadow-[0_12px_28px_-14px_rgba(34,67,59,.8)] transition-all hover:-translate-y-px hover:bg-forest-deep disabled:opacity-70">
-            {saving ? "Saving…" : "Create group"}
+            {saving ? "Saving…" : submitLabel}
           </button>
           <button type="button" onClick={onCancel} className="mt-2 w-full rounded-xl px-5 py-3 text-[15px] font-semibold text-ink/60 hover:bg-mist hover:text-ink">
             Cancel

@@ -12,7 +12,7 @@ const links = [
 
 const more = [
   ["Community", [["Coaches corner", "/coaches-corner"], ["Members", "/members"], ["Forum", "/forum"], ["Summary", "/summary"]]],
-  ["Account", [["My profile", "/profile"], ["Messages", "/messages"], ["Settings", "/settings"]]],
+  ["Account", [["My profile", "/profile/:sourabh"], ["Messages", "/messages"], ["Settings", "/settings"]]],
 ];
 
 export default function Navbar({ updates = 0 }) {
