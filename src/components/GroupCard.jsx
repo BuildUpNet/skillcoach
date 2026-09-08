@@ -34,12 +34,16 @@ export default function GroupCard({ group, onLeave, onOpen }) {
           <button onClick={() => onOpen?.(group.id)} className="flex-1 rounded-xl bg-forest px-4 py-2.5 text-[15px] font-bold text-white transition-colors hover:bg-forest-deep">
             Open group
           </button>
-          <Link to={`/group/edit/${group.id}`} className="rounded-xl border border-line px-4 py-2.5 text-[15px] font-semibold text-ink/60 transition-colors hover:border-forest/40 hover:bg-forest-soft/40 hover:text-forest">
-            Edit
-          </Link>
-          <button onClick={() => onLeave(group.id)} className="rounded-xl border border-line px-4 py-2.5 text-[15px] font-semibold text-ink/60 transition-colors hover:border-crimson/40 hover:bg-crimson/5 hover:text-crimson">
-            Delete
-          </button>
+          {group.isOwner && (
+            <>
+              <Link to={`/group/edit/${group.id}`} className="rounded-xl border border-line px-4 py-2.5 text-[15px] font-semibold text-ink/60 transition-colors hover:border-forest/40 hover:bg-forest-soft/40 hover:text-forest">
+                Edit
+              </Link>
+              <button onClick={() => onLeave(group.id)} className="rounded-xl border border-line px-4 py-2.5 text-[15px] font-semibold text-ink/60 transition-colors hover:border-crimson/40 hover:bg-crimson/5 hover:text-crimson">
+                Delete
+              </button>
+            </>
+          )}
         </div>
       </div>
     </article>

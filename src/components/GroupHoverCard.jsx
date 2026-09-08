@@ -58,13 +58,15 @@ export default function GroupHoverCard({ group, onLeave, children }) {
 
             <div className="flex items-center justify-between border-t border-line bg-mist px-4 py-2.5">
               <Link to={`/groups/${group.id}`} className="text-[14px] font-bold text-forest hover:underline">Open group</Link>
-              <div className="flex items-center gap-3">
-                <Link to={`/group/edit/${group.id}`} className="text-[14px] font-semibold text-ink/55 hover:text-forest">Edit</Link>
-                <button onClick={() => onLeave?.(group.id)} className="inline-flex items-center gap-1.5 text-[14px] font-semibold text-ink/55 hover:text-crimson">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M6 6l12 12M18 6L6 18" /></svg>
-                  Delete
-                </button>
-              </div>
+              {group.isOwner && (
+                <div className="flex items-center gap-3">
+                  <Link to={`/group/edit/${group.id}`} className="text-[14px] font-semibold text-ink/55 hover:text-forest">Edit</Link>
+                  <button onClick={() => onLeave?.(group.id)} className="inline-flex items-center gap-1.5 text-[14px] font-semibold text-ink/55 hover:text-crimson">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M6 6l12 12M18 6L6 18" /></svg>
+                    Delete
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>

@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import CreateGroupForm from "../components/CreateGroupForm";
-import { createGroup } from "../lib/api";
+import { createGroup, setGroupPhoto } from "../lib/api";
 
 export default function CreateGroup() {
   const navigate = useNavigate();
@@ -15,13 +15,17 @@ export default function CreateGroup() {
       approval: data.approval === "approve",
       summary_emails: data.dailySummary,
     });
+    if (data.photoDataUrl) {
+      await setGroupPhoto(created.group_id, data.photoDataUrl);
+    }
     const newGroup = {
       id: created.group_id,
       name: created.title,
       description: created.description,
       members: created.member_count,
       leader: "You",
-      image: null,
+      isOwner: true,
+      image: data.photoDataUrl || null,
       memberList: [],
     };
     // Projects page picks this up from location.state and adds it to the list

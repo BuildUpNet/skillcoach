@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import GroupCard from "../components/GroupCard";
-import { CURRENT_USER_ID, deleteGroup, getGroups } from "../lib/api";
+import { deleteGroup, getGroups } from "../lib/api";
+import { useAuth } from "../lib/AuthContext";
 
 const TABS = [
   { key: "browse", label: "Browse groups", to: "/group/browser" },
@@ -9,19 +10,22 @@ const TABS = [
   { key: "create", label: "Create new group", to: "/group/create" },
 ];
 
-const toCard = (g) => ({
+const toCard = (g, currentUserId) => ({
   id: g.group_id,
+  ownerId: g.user_id,
   name: g.title,
   description: g.description,
   members: g.member_count,
-  leader: g.user_id === CURRENT_USER_ID ? "You" : `User #${g.user_id}`,
-  image: null,
+  leader: g.user_id === currentUserId ? "You" : g.owner_displayname || `User #${g.user_id}`,
+  image: g.photo_data_url || null,
+  isOwner: g.user_id === currentUserId,
   memberList: [],
 });
 
 export default function Projects() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuth();
 
   const [tab, setTab] = useState("mine");
   const [groups, setGroups] = useState([]);
@@ -31,10 +35,10 @@ export default function Projects() {
 
   useEffect(() => {
     getGroups()
-      .then((rows) => setGroups(rows.map(toCard)))
+      .then((rows) => setGroups(rows.map((g) => toCard(g, user?.user_id))))
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
-  }, []);
+  }, [user]);
 
   // pick up a group created on /group/create
   useEffect(() => {
