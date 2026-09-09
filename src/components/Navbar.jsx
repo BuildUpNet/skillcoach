@@ -53,7 +53,7 @@ export default function Navbar({ updates = 0 }) {
   return (
     <div className="sticky top-0 z-40 px-4 pt-4">
       <header className="mx-auto flex w-full max-w-[1200px] items-center gap-4 rounded-2xl border border-white/60 bg-white/85 px-4 py-2.5 shadow-[0_10px_40px_-18px_rgba(20,26,24,.35)] backdrop-blur-xl lg:rounded-full lg:px-5">
-        <Link to="/" aria-label="SkillCoach home" className="flex-none">
+        <Link to="/home" aria-label="SkillCoach home" className="flex-none">
           <img src={logo} alt="SkillCoach — skillcoach.org" className="h-11 w-auto" />
         </Link>
 
