@@ -1,22 +1,34 @@
 import { useState } from "react";
 import { useOutletContext } from "react-router-dom";
 import { Card, EmptyState } from "../../components/group/GroupUI";
+import { inviteMember } from "../../lib/api";
 
 const inputBase = "w-full rounded-xl border border-line bg-white px-4 py-3 text-[15px] text-ink outline-none transition-all placeholder:text-ink/40 hover:border-forest/40 focus:border-forest focus:ring-4 focus:ring-forest/10";
 
 export default function GroupInvite() {
-  const { workspace } = useOutletContext();
-  const [pending, setPending] = useState(workspace.invitesPending);
+  const { workspace, setWorkspace } = useOutletContext();
+  const { invitesPending: pending } = workspace;
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!email.trim()) return;
-    setPending((p) => [{ id: Date.now(), email: email.trim(), sentDate: "Just now" }, ...p]);
-    setEmail("");
-    setSent(true);
-    setTimeout(() => setSent(false), 2000);
+    setBusy(true);
+    setError("");
+    try {
+      const invite = await inviteMember(workspace.info.id, email.trim());
+      setWorkspace((prev) => ({ ...prev, invitesPending: [invite, ...prev.invitesPending] }));
+      setEmail("");
+      setSent(true);
+      setTimeout(() => setSent(false), 2000);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
@@ -34,7 +46,8 @@ export default function GroupInvite() {
               className={inputBase}
             />
           </div>
-          <button type="submit" className="w-full rounded-xl bg-forest px-4 py-3 text-[15px] font-bold text-white transition-colors hover:bg-forest-deep">
+          {error && <p className="text-center text-[13.5px] font-semibold text-crimson">{error}</p>}
+          <button type="submit" disabled={busy} className="w-full rounded-xl bg-forest px-4 py-3 text-[15px] font-bold text-white transition-colors hover:bg-forest-deep disabled:opacity-60">
             Send invite
           </button>
           {sent && <p className="text-center text-[13.5px] font-semibold text-forest">Invite sent.</p>}

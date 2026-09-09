@@ -1,15 +1,105 @@
-import { useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, Outlet, useParams } from "react-router-dom";
-import { getGroupWorkspace } from "../data/groupWorkspace";
+import {
+  getGroup,
+  getGroupTasks,
+  getGroupMembers,
+  getGroupInvites,
+  getMyTimesheet,
+  getTimeSummary,
+  getGroupTimeline,
+} from "../lib/api";
+import { bucketTimesheet } from "../lib/groupHelpers";
+import { useAuth } from "../lib/AuthContext";
 import GroupSidebar from "../components/group/GroupSidebar";
 import Icon from "../components/group/icons";
 
 export default function GroupLayout() {
   const { groupId } = useParams();
+  const { user } = useAuth();
   const [spinning, setSpinning] = useState(false);
-  const workspace = getGroupWorkspace(groupId);
+  const [raw, setRaw] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
 
-  if (!workspace) {
+  const load = useCallback(async () => {
+    setLoading(true);
+    setNotFound(false);
+    try {
+      const [group, tasks, members, invitesPending, timesheetFlat, timeSummary, timeline] = await Promise.all([
+        getGroup(groupId),
+        getGroupTasks(groupId),
+        getGroupMembers(groupId),
+        getGroupInvites(groupId),
+        getMyTimesheet(groupId),
+        getTimeSummary(groupId),
+        getGroupTimeline(groupId),
+      ]);
+      setRaw({
+        info: {
+          id: group.group_id,
+          name: group.title,
+          subtitle: group.category_title || "",
+          description: group.description || "",
+          image: group.photo_data_url || null,
+        },
+        tasks,
+        members,
+        invitesPending,
+        timesheet: bucketTimesheet(timesheetFlat),
+        timeSummary,
+        timeline,
+        // Lessons/Forum depend on separate modules (Video, Forum) not part of
+        // this rebuild yet — left empty/zeroed rather than faked.
+        lessons: [],
+        forum: { title: group.title, subtitle: group.category_title || "", topics: 0, posts: 0 },
+      });
+    } catch {
+      setNotFound(true);
+    } finally {
+      setLoading(false);
+    }
+  }, [groupId]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const workspace = useMemo(() => {
+    if (!raw) return null;
+    const viewer = user?.displayname;
+    const owner = raw.members.find((m) => m.role === "Owner");
+    const myTasks = raw.tasks.filter((t) => t.assignee === viewer);
+    const myAssignments = raw.tasks.flatMap((t) =>
+      t.assignments
+        .filter((a) => a.assignee === viewer)
+        .map((a) => ({ ...a, taskId: t.id, taskTitle: t.title }))
+    );
+    return {
+      ...raw,
+      info: {
+        ...raw.info,
+        leader: owner?.name || "Unknown",
+        memberCount: raw.members.length,
+        lessonCount: raw.lessons.length,
+        topicCount: raw.forum.topics,
+        postCount: raw.forum.posts,
+      },
+      myTasks,
+      myAssignments,
+    };
+  }, [raw, user]);
+
+  const handleRefresh = () => {
+    setSpinning(true);
+    load().finally(() => setSpinning(false));
+  };
+
+  if (loading) {
+    return <div className="mx-auto max-w-[1200px] px-4 py-20 text-center text-[15px] text-ink/60">Loading group…</div>;
+  }
+
+  if (notFound || !workspace) {
     return (
       <div className="mx-auto max-w-[1200px] px-4 py-20 text-center">
         <p className="text-[20px] font-bold text-ink">Group not found</p>
@@ -22,11 +112,6 @@ export default function GroupLayout() {
 
   const { info } = workspace;
 
-  const handleRefresh = () => {
-    setSpinning(true);
-    setTimeout(() => setSpinning(false), 700);
-  };
-
   return (
     <div className="mx-auto max-w-[1320px] px-4 pb-16 pt-6 lg:flex lg:items-start lg:gap-6">
       <aside className="mb-6 lg:sticky lg:top-24 lg:mb-0 lg:w-72 lg:flex-none">
@@ -37,9 +122,13 @@ export default function GroupLayout() {
               <Icon name="back" className="h-4 w-4" /> Projects
             </Link>
             <div className="relative mt-4 flex items-center gap-3">
-              <div className="grid h-12 w-12 flex-none place-items-center rounded-2xl bg-gold text-[17px] font-extrabold text-ink">
-                {info.name.slice(0, 2).toUpperCase()}
-              </div>
+              {info.image ? (
+                <img src={info.image} alt="" className="h-12 w-12 flex-none rounded-2xl object-cover" />
+              ) : (
+                <div className="grid h-12 w-12 flex-none place-items-center rounded-2xl bg-gold text-[17px] font-extrabold text-ink">
+                  {info.name.slice(0, 2).toUpperCase()}
+                </div>
+              )}
               <div className="min-w-0">
                 <h1 className="truncate text-[18px] font-extrabold leading-tight text-white">{info.name}</h1>
                 <p className="truncate text-[14px] text-white/65">{info.subtitle}</p>
@@ -69,7 +158,7 @@ export default function GroupLayout() {
           </button>
         </div>
 
-        <Outlet context={{ workspace }} />
+        <Outlet context={{ workspace, setWorkspace: setRaw, reloadWorkspace: load }} />
       </main>
     </div>
   );

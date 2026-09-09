@@ -1,17 +1,24 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import CreateGroupForm from "../components/CreateGroupForm";
-import { getGroup, updateGroup } from "../lib/api";
+import { getGroup, updateGroup, setGroupPhoto, deleteGroupPhoto } from "../lib/api";
+import { useAuth } from "../lib/AuthContext";
 
 export default function EditGroup() {
   const navigate = useNavigate();
   const { groupId } = useParams();
+  const { user } = useAuth();
   const [initialData, setInitialData] = useState(null);
+  const [notOwner, setNotOwner] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
     getGroup(groupId)
-      .then((g) =>
+      .then((g) => {
+        if (user && g.user_id !== user.user_id) {
+          setNotOwner(true);
+          return;
+        }
         setInitialData({
           name: g.title,
           description: g.description,
@@ -20,10 +27,11 @@ export default function EditGroup() {
           searchable: g.search ? "yes" : "no",
           memberInvites: g.invite ? "yes" : "officers",
           approval: g.approval ? "approve" : "immediate",
-        }),
-      )
+          photoUrl: g.photo_data_url || null,
+        });
+      })
       .catch((err) => setError(err.message));
-  }, [groupId]);
+  }, [groupId, user]);
 
   const handleSave = async (data) => {
     await updateGroup(groupId, {
@@ -35,6 +43,11 @@ export default function EditGroup() {
       approval: data.approval === "approve",
       summary_emails: data.dailySummary,
     });
+    if (data.photoDataUrl) {
+      await setGroupPhoto(groupId, data.photoDataUrl);
+    } else if (data.removePhoto) {
+      await deleteGroupPhoto(groupId);
+    }
     navigate(`/projects/${groupId}`);
   };
 
@@ -59,7 +72,12 @@ export default function EditGroup() {
       </div>
 
       {error && <p className="rounded-xl bg-crimson/10 px-4 py-3 text-[15px] font-medium text-crimson">{error}</p>}
-      {!error && !initialData && <p className="text-[15px] text-ink/60">Loading…</p>}
+      {notOwner && (
+        <p className="rounded-xl bg-crimson/10 px-4 py-3 text-[15px] font-medium text-crimson">
+          Only the group owner can edit this group.
+        </p>
+      )}
+      {!error && !notOwner && !initialData && <p className="text-[15px] text-ink/60">Loading…</p>}
       {initialData && (
         <CreateGroupForm
           initialData={initialData}

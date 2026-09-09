@@ -1,6 +1,33 @@
 import { useEffect, useState } from "react";
 import { getCategories } from "../lib/api";
 
+const MAX_PHOTO_DIMENSION = 480;
+
+// Resizes/compresses a picked image file down to a small JPEG data URL
+// before it goes anywhere — keeps the request body (and the DB row it ends
+// up in) small regardless of the original photo's resolution.
+function resizeImageToDataUrl(file, maxDim = MAX_PHOTO_DIMENSION, quality = 0.82) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    img.onload = () => {
+      const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      URL.revokeObjectURL(objectUrl);
+      resolve(canvas.toDataURL("image/jpeg", quality));
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error("Could not read that image file."));
+    };
+    img.src = objectUrl;
+  });
+}
+
 const PRIVACY = ["Everyone", "Registered Members", "Group Members Only", "Officers Only"];
 
 const initial = {
@@ -62,23 +89,33 @@ function PrivacySelect({ id, title, question, value, onChange }) {
 export default function CreateGroupForm({ onCancel, onSave, initialData, submitLabel = "Create group" }) {
   const [data, setData] = useState(() => ({ ...initial, ...initialData }));
   const [errors, setErrors] = useState({});
-  const [preview, setPreview] = useState(null);
+  const [preview, setPreview] = useState(initialData?.photoUrl || null);
+  const [removePhoto, setRemovePhoto] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [categories, setCategories] = useState([]);
 
-  const set = (k) => (v) => { setData((d) => ({ ...d, [k]: v })); if (errors[k]) setErrors((e) => ({ ...e, [k]: "" })); };
+  const set = (k) => (v) => {
+    setData((d) => ({ ...d, [k]: v }));
+    if (errors[k]) setErrors((e) => ({ ...e, [k]: "" }));
+    if (k === "photo" && v) setRemovePhoto(false);
+  };
 
   useEffect(() => {
     getCategories().then(setCategories).catch(() => setCategories([]));
   }, []);
 
   useEffect(() => {
-    if (!data.photo) { setPreview(null); return; }
+    if (!data.photo) {
+      setPreview(removePhoto ? null : initialData?.photoUrl || null);
+      return;
+    }
     const url = URL.createObjectURL(data.photo);
     setPreview(url);
     return () => URL.revokeObjectURL(url);
-  }, [data.photo]);
+  }, [data.photo, removePhoto, initialData?.photoUrl]);
+
+  const hasExistingPhoto = Boolean(data.photo || (initialData?.photoUrl && !removePhoto));
 
   const submit = async (e) => {
     e.preventDefault();
@@ -91,7 +128,8 @@ export default function CreateGroupForm({ onCancel, onSave, initialData, submitL
     setSaveError("");
     setSaving(true);
     try {
-      await onSave?.(data);
+      const photoDataUrl = data.photo ? await resizeImageToDataUrl(data.photo) : null;
+      await onSave?.({ ...data, photoDataUrl, removePhoto });
     } catch (err) {
       setSaveError(err.message || "Something went wrong, please try again.");
     } finally {
@@ -137,7 +175,15 @@ export default function CreateGroupForm({ onCancel, onSave, initialData, submitL
                 )}
                 <input type="file" accept="image/*" className="sr-only" onChange={(e) => set("photo")(e.target.files?.[0] || null)} />
               </label>
-              {data.photo && <button type="button" onClick={() => set("photo")(null)} className="mt-2 text-[13.5px] font-semibold text-ink/55 hover:text-crimson">Remove photo</button>}
+              {hasExistingPhoto && (
+                <button
+                  type="button"
+                  onClick={() => { set("photo")(null); setRemovePhoto(true); }}
+                  className="mt-2 text-[13.5px] font-semibold text-ink/55 hover:text-crimson"
+                >
+                  Remove photo
+                </button>
+              )}
             </div>
 
             <div className="space-y-6">
