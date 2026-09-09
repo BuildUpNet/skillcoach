@@ -32,6 +32,8 @@ import Members from "../pages/Members";
 import Forums from "../pages/forum/Forums";
 import ForumTopics from "../pages/forum/ForumTopics";
 import ForumTopic from "../pages/forum/ForumTopic";
+import UpgradePage from "../pages/UpgradePage";
+import Notifications from "../pages/Notifications";
 
 function SignInWrapper() {
   const navigate = useNavigate();
@@ -66,7 +68,7 @@ export default function AppRoutes() {
       <Route element={<AppLayout />}>
         <Route path="/" element={<SignInWrapper />} />
         <Route path="/signup" element={<SignUpWrapper />} />
-
+        <Route path="/settings/upgrade" element={<UpgradePage />} />
         <Route element={<RequireAuth />}>
           <Route path="/projects" element={<Projects />} />
           <Route path="/projects/:groupId" element={<GroupLayout />}>
@@ -99,7 +101,8 @@ export default function AppRoutes() {
           <Route path="/forums/:forumId/:forumSlug" element={<ForumTopics />} />
           <Route path="/forums/topic/:topicId/:topicSlug" element={<ForumTopic />} />
           <Route path="/privacy" element={<SettingsGeneral defaultTab="Privacy" />} />
-          <Route path="/notifications" element={<SettingsGeneral defaultTab="Notifications" />} />
+          <Route path="/notifications" element={<Notifications />} />
+          <Route path="/settings/notifications" element={<SettingsGeneral defaultTab="Notifications" />} />
           <Route path="/timeline" element={<SettingsGeneral defaultTab="Timeline" />} />
           <Route path="/change-password" element={<SettingsGeneral defaultTab="Change Password" />} />
           <Route path="/delete-account" element={<SettingsGeneral defaultTab="Delete Account" />} />

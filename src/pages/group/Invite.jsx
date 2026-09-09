@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useOutletContext } from "react-router-dom";
 import { Card, EmptyState } from "../../components/group/GroupUI";
 import { inviteMember } from "../../lib/api";
-
+import { useToast } from "../../components/Toast";
 const inputBase = "w-full rounded-xl border border-line bg-white px-4 py-3 text-[15px] text-ink outline-none transition-all placeholder:text-ink/40 hover:border-forest/40 focus:border-forest focus:ring-4 focus:ring-forest/10";
 
 export default function GroupInvite() {
@@ -12,7 +12,7 @@ export default function GroupInvite() {
   const [sent, setSent] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-
+const toast = useToast();
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!email.trim()) return;
@@ -23,6 +23,7 @@ export default function GroupInvite() {
       setWorkspace((prev) => ({ ...prev, invitesPending: [invite, ...prev.invitesPending] }));
       setEmail("");
       setSent(true);
+      toast(`Invite sent to ${invite.email}`);
       setTimeout(() => setSent(false), 2000);
     } catch (err) {
       setError(err.message);

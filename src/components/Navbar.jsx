@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { NavLink, Link, useNavigate } from "react-router-dom";
 import logo from "../assets/logo.png";
 import { useAuth } from "../lib/AuthContext";
+import NotificationBell from "./NotificationBell";
 
 const links = [
   { to: "/projects", label: "Projects" },
@@ -89,10 +90,7 @@ export default function Navbar({ updates = 0 }) {
         </nav>
 
         <div className="ml-auto hidden items-center gap-2 lg:flex">
-          <Link to="/updates" className="relative grid h-10 w-10 place-items-center rounded-full border border-line text-ink/70 hover:border-forest hover:text-forest" aria-label={`${updates} updates`}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9"><path d="M6 8a6 6 0 0112 0v5l2 3H4l2-3zM10 20a2 2 0 004 0" /></svg>
-            {updates > 0 && <span className="absolute -right-1 -top-1 rounded-full bg-crimson px-1.5 py-px text-[11px] font-bold text-white">{updates}</span>}
-          </Link>
+          <NotificationBell />
           <Link to="/become-a-skillcoach" className="rounded-full bg-gold px-5 py-2.5 text-[15px] font-bold text-ink shadow-[0_8px_20px_-10px_rgba(217,164,65,.9)] transition-transform hover:-translate-y-px hover:bg-gold-deep hover:text-white">
             Become a SkillCoach
           </Link>

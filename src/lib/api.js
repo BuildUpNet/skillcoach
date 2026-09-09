@@ -79,3 +79,20 @@ export const logout = () => request("/api/auth/logout", { method: "POST" });
 export const getMe = () => request("/api/auth/me");
 export const changePassword = (data) =>
   request("/api/auth/me/password", { method: "PUT", body: JSON.stringify(data) });
+// add to src/lib/api.js
+export const getGeneralSettings = () => request("/api/settings/general");
+export const updateGeneralSettings = (data) =>
+  request("/api/settings/general", { method: "PUT", body: JSON.stringify(data) });
+export const disconnectFacebook = () => request("/api/settings/facebook", { method: "DELETE" });
+export const disconnectTwitter = () => request("/api/settings/twitter", { method: "DELETE" });
+
+// OAuth is a full-page redirect, not fetch:
+export const facebookConnectUrl = () => `${BASE_URL}/api/auth/facebook/start?mode=connect`;
+export const facebookLoginUrl = () => `${BASE_URL}/api/auth/facebook/start?mode=login`;
+// add to src/lib/api.js
+export const getNotifications = (limit = 20) => request(`/api/notifications?limit=${limit}`);
+export const markNotificationRead = (id) => request(`/api/notifications/${id}/read`, { method: "PATCH" });
+export const markAllNotificationsRead = () => request("/api/notifications/read-all", { method: "PATCH" });
+export const getMyInvites = () => request("/api/invites");
+export const acceptInvite = (groupId) => request(`/api/invites/${groupId}/accept`, { method: "POST" });
+export const rejectInvite = (groupId) => request(`/api/invites/${groupId}/reject`, { method: "POST" });

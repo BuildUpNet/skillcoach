@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import { pool, hasMembershipDateColumn } from '../db.js'
 import { asyncHandler, formatDate } from '../lib/groupUtils.js'
-
+import { sendGroupInviteMail } from '../lib/mailer.js'
 export const membersRouter = Router({ mergeParams: true })
 
 membersRouter.get('/', asyncHandler(async (req, res) => {
@@ -40,43 +40,39 @@ membersRouter.get('/invites', asyncHandler(async (req, res) => {
   )
   res.json(rows.map((r) => ({ id: r.user_id, email: r.email, sentDate: formatDate(r.sent_date) })))
 }))
-
 membersRouter.post('/invite', asyncHandler(async (req, res) => {
   const { groupId } = req.params
   const { email } = req.body || {}
   if (!email?.trim()) return res.status(400).json({ error: 'Email is required' })
 
-  const [userRows] = await pool.query(
-    'SELECT user_id, email FROM engine4_users WHERE email = ? LIMIT 1',
-    [email.trim()],
+  const [[user]] = await pool.query(
+    'SELECT user_id, email, displayname FROM engine4_users WHERE email = ? LIMIT 1',
+    [email.trim().toLowerCase()],
   )
-  if (!userRows.length) return res.status(404).json({ error: 'No account found with that email' })
-  const invitedUserId = userRows[0].user_id
+  if (!user) return res.status(404).json({ error: 'No SkillCoach account uses that email' })
 
-  const [existing] = await pool.query(
-    'SELECT resource_id FROM engine4_group_membership WHERE resource_id = ? AND user_id = ? LIMIT 1',
-    [groupId, invitedUserId],
+  const [[existing]] = await pool.query(
+    'SELECT active, user_approved FROM engine4_group_membership WHERE resource_id = ? AND user_id = ? LIMIT 1',
+    [groupId, user.user_id],
   )
-  if (existing.length) return res.status(409).json({ error: 'This user is already a member or has a pending invite' })
+  if (existing?.active) return res.status(409).json({ error: 'That person is already a member' })
+  if (existing) return res.status(409).json({ error: 'An invite is already pending for that email' })
 
-  if (hasMembershipDateColumn) {
-    await pool.query(
-      `INSERT INTO engine4_group_membership (resource_id, user_id, active, resource_approved, user_approved, created_date)
-       VALUES (?, ?, 1, 1, 0, NOW())`,
-      [groupId, invitedUserId],
-    )
-  } else {
-    await pool.query(
-      `INSERT INTO engine4_group_membership (resource_id, user_id, active, resource_approved, user_approved)
-       VALUES (?, ?, 1, 1, 0)`,
-      [groupId, invitedUserId],
-    )
+  // invite = row exists, group approved it, user hasn't accepted yet
+  await pool.query(
+    hasMembershipDateColumn
+      ? `INSERT INTO engine4_group_membership (resource_id, user_id, active, resource_approved, user_approved, created_date) VALUES (?, ?, 0, 1, 0, NOW())`
+      : `INSERT INTO engine4_group_membership (resource_id, user_id, active, resource_approved, user_approved) VALUES (?, ?, 0, 1, 0)`,
+    [groupId, user.user_id],
+  )
+
+  try {
+    const [[grp]] = await pool.query('SELECT title FROM engine4_group_groups WHERE group_id = ?', [groupId])
+    const [[inviter]] = await pool.query('SELECT displayname FROM engine4_users WHERE user_id = ?', [req.userId])
+    await sendGroupInviteMail({ to: user.email, userId: user.user_id, displayName: user.displayname, inviterId: req.userId, inviterName: inviter?.displayname, groupTitle: grp?.title, groupId })
+  } catch (err) {
+    console.error('invite mail failed:', err.message)
   }
-  // No email — legacy confirmed sends none for invites, in-app notification only (not built).
 
-  res.status(201).json({
-    id: invitedUserId,
-    email: userRows[0].email,
-    sentDate: hasMembershipDateColumn ? formatDate(new Date()) : null,
-  })
+  res.status(201).json({ id: user.user_id, email: user.email, name: user.displayname, sentDate: formatDate(new Date()) })
 }))

@@ -8,7 +8,7 @@ import {
   priorityToLabel,
   ensureTaskUser,
 } from '../lib/groupUtils.js'
-
+import { sendTaskCreatedMail, sendTaskCommentMail, sendAssignmentCreatedMail } from '../lib/mailer.js'
 export const tasksRouter = Router({ mergeParams: true })
 
 // Loads a task and confirms it belongs to the group in the URL — every
@@ -201,7 +201,20 @@ tasksRouter.post('/', asyncHandler(async (req, res) => {
   )
   await ensureTaskUser(result.insertId, taskManager)
   // TODO notifyGroupTaskCreate(taskManager, groupOwner) — deferred, no email system yet.
-
+  try {
+    const [[grp]] = await pool.query('SELECT title FROM engine4_group_groups WHERE group_id = ?', [groupId])
+    await sendTaskCreatedMail({
+      groupId,
+      groupTitle: grp?.title || 'your group',
+      taskId: result.insertId,
+      taskTitle: title.trim(),
+      taskDescription: description.trim(),
+      creatorId: req.userId,
+      assigneeId: taskManager,
+    })
+  } catch (err) {
+    console.error('task-created mail failed:', err.message)
+  }
   const names = await getDisplayNames([taskManager])
   res.status(201).json({
     id: result.insertId,
@@ -315,7 +328,20 @@ tasksRouter.post('/:taskId/comments', asyncHandler(async (req, res) => {
     [req.userId, taskId, text.trim(), parent],
   )
   // TODO notifyGroupTaskComment[_reply](taskManager/taskUsers) — deferred, no email system yet.
-
+ try {
+    const [[grp]] = await pool.query('SELECT title FROM engine4_group_groups WHERE group_id = ?', [groupId])
+    await sendTaskCommentMail({
+      groupId,
+      groupTitle: grp?.title || 'your group',
+      taskId,
+      taskTitle: task.course_title,
+      commentText: text.trim(),
+      commenterId: req.userId,
+      taskCreatorId: task.user_id,
+    })
+  } catch (err) {
+    console.error('task-comment mail failed:', err.message)
+  }
   const names = await getDisplayNames([req.userId])
   res.status(201).json({
     id: result.insertId,
@@ -369,6 +395,23 @@ tasksRouter.post('/:taskId/assignments', asyncHandler(async (req, res) => {
   await ensureTaskUser(taskId, assignee)
   // TODO notifyGroupTaskCreateassignment(assignee, taskManager) — deferred, no email system yet.
 
+  try {
+    const [[grp]] = await pool.query('SELECT title FROM engine4_group_groups WHERE group_id = ?', [groupId])
+    await sendAssignmentCreatedMail({
+      groupId,
+      groupTitle: grp?.title || 'your group',
+      taskId,
+      taskTitle: task.course_title,
+      assignmentTitle: title.trim(),
+      details: details?.trim() || '',
+      creatorId: req.userId,
+      assigneeId: assignee,
+      taskCreatorId: task.user_id,
+      taskManagerId: task.task_manager,
+    })
+  } catch (err) {
+    console.error('assignment mail failed:', err.message)
+  }
   const names = await getDisplayNames([assignee])
   res.status(201).json({
     id: result.insertId,

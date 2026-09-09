@@ -3,24 +3,31 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import GroupCard from "../components/GroupCard";
 import { deleteGroup, getGroups } from "../lib/api";
 import { useAuth } from "../lib/AuthContext";
-
+import InvitesBanner from "../components/InvitesBanner";
 const TABS = [
   { key: "browse", label: "Browse groups", to: "/group/browser" },
   { key: "mine", label: "My groups" },
   { key: "create", label: "Create new group", to: "/group/create" },
 ];
 
-const toCard = (g, currentUserId) => ({
-  id: g.group_id,
-  ownerId: g.user_id,
-  name: g.title,
-  description: g.description,
-  members: g.member_count,
-  leader: g.user_id === currentUserId ? "You" : g.owner_displayname || `User #${g.user_id}`,
-  image: g.photo_data_url || null,
-  isOwner: g.user_id === currentUserId,
-  memberList: [],
-});
+const toCard = (g, currentUserId) => {
+  const isOwner = g.user_id === currentUserId;
+    const isMember = isOwner || !!g.is_member || (Array.isArray(g.members) && 
+ g.members.some((m) => m.user_id === currentUserId));
+
+  return {
+    id: g.group_id,
+    ownerId: g.user_id,
+    name: g.title,
+    description: g.description,
+    members: g.member_count,
+    leader: isOwner ? "You" : g.owner_displayname || `User #${g.user_id}`,
+    image: g.photo_data_url || null,
+    isOwner,
+    isMember,
+    memberList: g.members || [],
+  };
+};
 
 export default function Projects() {
   const navigate = useNavigate();
@@ -55,9 +62,9 @@ export default function Projects() {
     await deleteGroup(id);
     setGroups((g) => g.filter((x) => x.id !== id));
   };
-
-  const visible = groups.filter((g) => g.name.toLowerCase().includes(q.toLowerCase()));
-  const people = groups.reduce((n, g) => n + g.members, 0);
+  const mine = groups.filter((g) => g.isMember);
+  const visible = mine.filter((g) => g.name.toLowerCase().includes(q.toLowerCase()));
+  const people = mine.reduce((n, g) => n + g.members, 0);
 
   return (
     <div className="w-full max-w-full overflow-x-hidden min-h-screen">
@@ -91,7 +98,7 @@ export default function Projects() {
             <div className="grid grid-cols-2 gap-3 w-full">
               <div className="rounded-2xl bg-white/10 p-4 sm:p-5 ring-1 ring-white/15 backdrop-blur">
                 <div className="text-3xl sm:text-4xl font-extrabold leading-none text-[#d99b26]">
-                  {groups.length}
+                  {mine.length}
                 </div>
                 <div className="mt-2 text-xs sm:text-sm text-white/70 font-medium">
                   groups joined
@@ -119,7 +126,13 @@ export default function Projects() {
             </div>
           </div>
         </section>
-
+ <InvitesBanner
+          onAccepted={(group) =>
+            setGroups((prev) =>
+              prev.some((x) => x.id === group.group_id) ? prev : [toCard({ ...group, is_member: true }, user?.user_id), ...prev]
+            )
+          }
+        />
         {/* tabs + search */}
         <section className="mt-6 sm:mt-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div
@@ -147,7 +160,7 @@ export default function Projects() {
                         : "bg-gray-100 text-gray-600"
                     }`}
                   >
-                    {groups.length}
+                    {mine.length}
                   </span>
                 )}
               </button>
