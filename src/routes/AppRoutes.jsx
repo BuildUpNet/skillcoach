@@ -32,6 +32,9 @@ import Members from "../pages/Members";
 import Forums from "../pages/forum/Forums";
 import ForumTopics from "../pages/forum/ForumTopics";
 import ForumTopic from "../pages/forum/ForumTopic";
+import MemberHome from "../pages/MemberHome";
+
+import GroupCreateTask from "../pages/adminpages/GroupCreateTask";
 
 function SignInWrapper() {
   const navigate = useNavigate();
@@ -68,6 +71,9 @@ export default function AppRoutes() {
         <Route path="/signup" element={<SignUpWrapper />} />
 
         <Route element={<RequireAuth />}>
+          <Route path="/home" element={<MemberHome />} />
+          <Route path="/members/home" element={<MemberHome />} />
+          <Route path="/member-home" element={<MemberHome />} />
           <Route path="/projects" element={<Projects />} />
           <Route path="/projects/:groupId" element={<GroupLayout />}>
             <Route index element={<GroupDashboard />} />
@@ -103,6 +109,7 @@ export default function AppRoutes() {
           <Route path="/timeline" element={<SettingsGeneral defaultTab="Timeline" />} />
           <Route path="/change-password" element={<SettingsGeneral defaultTab="Change Password" />} />
           <Route path="/delete-account" element={<SettingsGeneral defaultTab="Delete Account" />} />
+          <Route path="/group/:id/create-task" element={<GroupCreateTask />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />
