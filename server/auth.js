@@ -59,8 +59,8 @@ export function signSession(user) {
 export function setSessionCookie(res, token) {
   res.cookie(AUTH_COOKIE, token, {
     httpOnly: true,
-    sameSite: 'lax',
-    secure: process.env.COOKIE_SECURE === 'true',
+    sameSite: 'none',
+    secure: true,
     maxAge: 7 * 24 * 60 * 60 * 1000,
   })
 }
