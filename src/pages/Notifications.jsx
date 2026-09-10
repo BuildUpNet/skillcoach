@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { getNotifications, markAllNotificationsRead, markNotificationRead } from "../lib/api";
 import InvitesBanner from "../components/InvitesBanner";
@@ -11,8 +11,19 @@ const KIND = {
   group_invite:       { label: "Invite",     tone: "bg-gold-soft text-gold-deep",    path: "M3 6.5h18v11H3v-11zm0 0l9 7 9-7" },
   invite_accepted:    { label: "Joined",     tone: "bg-forest-soft text-forest",     path: "M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM17 11l2 2 4-4" },
   invite_declined:    { label: "Declined",   tone: "bg-crimson/10 text-crimson",     path: "M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM17 8l5 5m0-5l-5 5" },
+  friend_request:  { label: "Friend request", tone: "bg-gold-soft text-gold-deep", path: "M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM20 8v6M17 11h6" },
+friend_accepted: { label: "Friends",        tone: "bg-forest-soft text-forest",  path: "M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM17 11l2 2 4-4" },
 };
 const FALLBACK = { label: "Update", tone: "bg-mist text-ink/70", path: "M6 8a6 6 0 0112 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.9 1.9 0 003.4 0" };
+
+// detail rows shown under each notification (same as old dropdown: Title / Group / Task / By / For)
+const DETAIL_ROWS = [
+  ["title", "Title"],
+  ["group", "Group"],
+  ["task",  "Task"],
+  ["by",    "By"],
+  ["for",   "For"],
+];
 
 function timeAgo(d) {
   const diff = (Date.now() - new Date(d).getTime()) / 1000;
@@ -20,6 +31,10 @@ function timeAgo(d) {
   if (diff < 3600) return `${Math.floor(diff / 60)} min ago`;
   if (diff < 86400) return `${Math.floor(diff / 3600)} hr ago`;
   return new Date(d).toLocaleString(undefined, { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
+}
+
+function fullDate(d) {
+  return new Date(d).toLocaleDateString(undefined, { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
 function dayBucket(d) {
@@ -45,11 +60,14 @@ export default function Notifications() {
       .finally(() => setLoading(false));
   }, []);
 
-  const open = async (n) => {
-    if (!n.read) {
-      markNotificationRead(n.id).catch(() => {});
-      setItems((l) => l.map((x) => (x.id === n.id ? { ...x, read: true } : x)));
-    }
+  const markRead = (n) => {
+    if (n.read) return;
+    markNotificationRead(n.id).catch(() => {});
+    setItems((l) => l.map((x) => (x.id === n.id ? { ...x, read: true } : x)));
+  };
+
+  const open = (n) => {
+    markRead(n);
     if (n.link) navigate(n.link);
   };
 
@@ -117,23 +135,58 @@ export default function Notifications() {
               <ul className="overflow-hidden rounded-2xl bg-white ring-1 ring-line divide-y divide-line">
                 {list.map((n) => {
                   const k = KIND[n.type] || FALLBACK;
+                  const rows = DETAIL_ROWS.filter(([key]) => n.meta?.[key]);
+                  const hasDetail = rows.length > 0;
+
                   return (
                     <li key={n.id}>
-                      <button onClick={() => open(n)}
-                        className={`group flex w-full items-center gap-4 px-4 py-3.5 text-left transition-colors hover:bg-mist/50 ${n.read ? "" : "bg-forest-soft/30"}`}>
+                      <div
+                        onClick={() => !hasDetail && open(n)}
+                        className={`flex w-full items-start gap-4 px-4 py-4 transition-colors hover:bg-mist/50 ${n.read ? "" : "bg-forest-soft/30"} ${!hasDetail ? "cursor-pointer" : ""}`}>
+
+                        {/* icon */}
                         <span className={`grid h-10 w-10 flex-none place-items-center rounded-xl ${k.tone}`}>
                           <svg className="h-[18px] w-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round"><path d={k.path} /></svg>
                         </span>
-                        <span className="min-w-0 flex-1">
-                          <span className={`block truncate text-[15px] leading-6 ${n.read ? "text-ink/75" : "font-semibold text-ink"}`}>{n.text}</span>
-                          <span className="block text-[13px] text-ink/50">
-                            {k.label} · {timeAgo(n.date)}
-                          </span>
-                        </span>
-                        {!n.read
-                          ? <span className="h-2 w-2 flex-none rounded-full bg-gold" />
-                          : <svg className="h-4 w-4 flex-none text-ink/30 opacity-0 transition-opacity group-hover:opacity-100" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path d="M9 6l6 6-6 6" /></svg>}
-                      </button>
+
+                        <div className="min-w-0 flex-1">
+                          {/* heading line */}
+                          <div className="flex items-start justify-between gap-3">
+                            <span className={`text-[15.5px] leading-6 ${n.read ? "text-ink/75" : "font-semibold text-ink"}`}>{n.text}</span>
+                            {!n.read && <span className="mt-2 h-2 w-2 flex-none rounded-full bg-gold" />}
+                          </div>
+
+                          {/* detail rows: Title / Group / Task / By / For / Date */}
+                          {hasDetail && (
+                            <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-[14px]">
+                              {rows.map(([key, lbl]) => (
+                                <Fragment key={key}>
+                                  <dt className="text-ink/50">{lbl}:</dt>
+                                  <dd className="truncate font-semibold text-forest">{n.meta[key]}</dd>
+                                </Fragment>
+                              ))}
+                              <dt className="text-ink/50">Date:</dt>
+                              <dd className="text-ink/75">{fullDate(n.date)}</dd>
+                            </dl>
+                          )}
+
+                          {/* footer: review button + meta */}
+                          <div className="mt-3 flex flex-wrap items-center gap-3">
+                            {hasDetail && n.link && (
+                              <button onClick={() => open(n)}
+                                className="rounded-lg bg-forest px-3.5 py-1.5 text-[14px] font-semibold text-white transition-colors hover:bg-forest/90">
+                                Click here to review
+                              </button>
+                            )}
+                            <span className="text-[13px] text-ink/50">{k.label} · {timeAgo(n.date)}</span>
+                          </div>
+                        </div>
+
+                        {/* chevron for simple (no-detail) rows */}
+                        {!hasDetail && n.read && (
+                          <svg className="mt-2 h-4 w-4 flex-none text-ink/30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path d="M9 6l6 6-6 6" /></svg>
+                        )}
+                      </div>
                     </li>
                   );
                 })}

@@ -11,6 +11,12 @@ import { timeRouter } from './routes/time.js'
 import { asyncHandler, getDisplayNames, requireGroupMember } from './lib/groupUtils.js'
 import { sendGroupCreatedMail, sendInviteResponseMail } from './lib/mailer.js'
 import { notificationsRouter } from './routes/notifications.js'
+import { profilesRouter } from './routes/profiles.js'
+import { profileEditRouter } from './routes/profileEdit.js'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { friendsRouter } from './routes/friends.js'
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const app = express()
 
 app.set('trust proxy', 1)
@@ -32,6 +38,10 @@ app.use(cookieParser())
 
 app.use('/api/auth', authRouter)
 app.use('/api/notifications', requireAuth, notificationsRouter)
+app.use('/api/profiles', requireAuth, profilesRouter)
+app.use('/api/me/profile', requireAuth, profileEditRouter)
+app.use('/uploads', express.static(path.join(__dirname, 'uploads'))) 
+ app.use('/api/members', requireAuth, friendsRouter)
 const IMAGE_DATA_URL_RE = /^data:image\/(png|jpe?g|webp);base64,/
 const MAX_PHOTO_DATA_URL_LENGTH = 3_500_000 // ~2.5MB decoded
 
