@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken'
 import 'dotenv/config'
 import { pool } from './db.js'
 
+
 // --- Legacy-compatible password hashing ------------------------------------
 // Matches the live PHP app exactly (User_Model_User::_insert /
 // User_Api_Core::getAuthAdapter): password = MD5(staticSalt + plain + userSalt).

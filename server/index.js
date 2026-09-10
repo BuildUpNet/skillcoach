@@ -11,6 +11,8 @@ import { timeRouter } from './routes/time.js'
 import { asyncHandler, getDisplayNames, requireGroupMember } from './lib/groupUtils.js'
 import { sendGroupCreatedMail, sendInviteResponseMail } from './lib/mailer.js'
 import { notificationsRouter } from './routes/notifications.js'
+import { creditsRouter } from './routes/credits.js'
+import { award } from './lib/credits.js'
 const app = express()
 
 app.set('trust proxy', 1)
@@ -31,6 +33,7 @@ app.use(express.json({ limit: '6mb' }))
 app.use(cookieParser())
 
 app.use('/api/auth', authRouter)
+app.use('/api/credits', creditsRouter);
 app.use('/api/notifications', requireAuth, notificationsRouter)
 const IMAGE_DATA_URL_RE = /^data:image\/(png|jpe?g|webp);base64,/
 const MAX_PHOTO_DATA_URL_LENGTH = 3_500_000 // ~2.5MB decoded
@@ -144,7 +147,8 @@ app.post('/api/groups', requireAuth, asyncHandler(async (req, res) => {
   }
 
   const [rows] = await pool.query('SELECT * FROM engine4_group_groups WHERE group_id = ?', [result.insertId])
-
+    // credits for creating a group — never fail the create if this fails
+  await award(req.userId, 'group_create', { objectType: 'group', objectId: result.insertId })
   // email the creator — never fail the create if mail fails
   try {
     const [[owner]] = await pool.query(
@@ -255,6 +259,7 @@ app.post('/api/invites/:groupId/accept', requireAuth, asyncHandler(async (req, r
   )
   if (!result.affectedRows) return res.status(404).json({ error: 'Invite not found' })
   await pool.query('UPDATE engine4_group_groups SET member_count = member_count + 1 WHERE group_id = ?', [req.params.groupId])
+  await award(req.userId, 'group_join', { objectType: 'group', objectId: Number(req.params.groupId) })
   const [[group]] = await pool.query('SELECT * FROM engine4_group_groups WHERE group_id = ?', [req.params.groupId])
     try {
     const [[me]] = await pool.query('SELECT displayname FROM engine4_users WHERE user_id = ?', [req.userId])

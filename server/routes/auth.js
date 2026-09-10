@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import rateLimit from 'express-rate-limit'
 import { pool } from '../db.js'
+import { award } from '../lib/credits.js';
 import {
   generateUserSalt,
   hashPassword,
@@ -61,6 +62,8 @@ authRouter.post('/register', registerLimiter, async (req, res) => {
   const [rows] = await pool.query('SELECT * FROM engine4_users WHERE user_id = ?', [result.insertId])
   const user = rows[0]
 
+  await award(user.user_id, 'signup')
+await award(user.user_id, 'signup')
   const token = signSession(user)
   setSessionCookie(res, token)
   res.status(201).json({ user: publicUser(user) })
@@ -193,7 +196,7 @@ authRouter.post('/login', loginLimiter, async (req, res) => {
   setSessionCookie(res, token)
 
   console.log('LOGIN: sending response')
-
+await award(user.user_id, 'user_login');
   return res.json({
     user: publicUser(user),
   })
