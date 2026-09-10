@@ -1,7 +1,14 @@
 import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import AppLayout from "../layouts/AppLayout";
 import GroupLayout from "../layouts/GroupLayout";
+import AdminLayout from "../layouts/AdminLayout";
 import RequireAuth from "../components/RequireAuth";
+import RequireAdmin from "../components/RequireAdmin";
+import AdminRoles from "../pages/admin/AdminRoles";
+import AdminUsers from "../pages/admin/AdminUsers";
+import AdminGroups from "../pages/admin/AdminGroups";
+// import AdminSettings from "../pages/admin/AdminSettings"; // temporarily disabled, no clear use case yet
+import AdminLogs from "../pages/admin/AdminLogs";
 import { useAuth } from "../lib/AuthContext";
 import Projects from "../pages/Projects";
 import SignIn from "../pages/SignIn";
@@ -16,6 +23,7 @@ import GroupInvite from "../pages/group/Invite";
 import GroupTimeline from "../pages/group/Timeline";
 import GroupLessons from "../pages/group/Lessons";
 import GroupTasks from "../pages/group/Tasks";
+import GroupManage from "../pages/group/Manage";
 import TaskDetail from "../pages/group/TaskDetail";
 import CreateGroup from "../pages/CreateGroup";
 import EditGroup from "../pages/EditGroup";
@@ -35,14 +43,13 @@ import ForumTopic from "../pages/forum/ForumTopic";
 
 import UpgradePage from "../pages/UpgradePage";
 import Notifications from "../pages/Notifications";
-
+import EditProfile from "../pages/EditProfile";
 import MemberHome from "../pages/MemberHome";
 
 import GroupCreateTask from "../pages/adminpages/GroupCreateTask";
 import GroupEditDetails from "../pages/adminpages/GroupEditDetails";
 import GroupMessages from "../pages/adminpages/GroupMessages";
 import GroupInviteFriends from "../pages/adminpages/GroupInviteFriends";
-
 
 function SignInWrapper() {
   const navigate = useNavigate();
@@ -91,6 +98,7 @@ export default function AppRoutes() {
             <Route path="time-summary" element={<GroupTimeSummary />} />
             <Route path="members" element={<GroupMembers />} />
             <Route path="invite" element={<GroupInvite />} />
+            <Route path="manage" element={<GroupManage />} />
             <Route path="timeline" element={<GroupTimeline />} />
             <Route path="lessons" element={<GroupLessons />} />
             <Route path="tasks" element={<GroupTasks />} />
@@ -119,6 +127,7 @@ export default function AppRoutes() {
           <Route path="/change-password" element={<SettingsGeneral defaultTab="Change Password" />} />
           <Route path="/delete-account" element={<SettingsGeneral defaultTab="Delete Account" />} />
           <Route path="/group/:id/create-task" element={<GroupCreateTask />} />
+<<<<<<< HEAD
           <Route path="/groups/edit/:id" element={<GroupEditDetails />} />
 
           <Route path="/messages/inbox" element={<GroupMessages tab="inbox" />} />
@@ -129,7 +138,24 @@ export default function AppRoutes() {
           <Route path="/groups/invite/:id" element={<GroupInviteFriends />} />
           
         </Route>
+=======
+>>>>>>> 62b1b8cc7a8021811b3ddc0870bb2f29765b7dd0
 
+          <Route path="/profile/edit" element={<EditProfile />} />
+          <Route path="/profile/edit/:tab" element={<EditProfile />} />
+
+          <Route element={<RequireAdmin />}>
+            <Route path="/admin" element={<AdminLayout />}>
+              <Route index element={<Navigate to="/admin/roles" replace />} />
+              <Route path="roles" element={<AdminRoles />} />
+              <Route path="users" element={<AdminUsers />} />
+              <Route path="groups" element={<AdminGroups />} />
+              {/* <Route path="settings" element={<AdminSettings />} /> temporarily disabled, no clear use case yet */}
+              <Route path="logs" element={<AdminLogs />} />
+            </Route>
+          </Route>
+        </Route>
+      
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>

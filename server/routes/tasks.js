@@ -9,6 +9,7 @@ import {
   ensureTaskUser,
 } from '../lib/groupUtils.js'
 import { sendTaskCreatedMail, sendTaskCommentMail, sendAssignmentCreatedMail } from '../lib/mailer.js'
+import { notify } from '../lib/notify.js'
 export const tasksRouter = Router({ mergeParams: true })
 
 // Loads a task and confirms it belongs to the group in the URL — every
@@ -28,6 +29,11 @@ async function getAssignmentInTask(assignmentId, taskId) {
     [assignmentId, taskId],
   )
   return rows[0] || null
+}
+
+async function getGroupTitle(groupId) {
+  const [[grp]] = await pool.query('SELECT title FROM engine4_group_groups WHERE group_id = ?', [groupId])
+  return grp?.title || 'your group'
 }
 
 // Like getTaskInGroup, but also carries the group owner's id — used by the
@@ -200,12 +206,12 @@ tasksRouter.post('/', asyncHandler(async (req, res) => {
     [taskManager, groupId, title.trim(), req.userId, String(taskManager), description.trim(), priorityToInt(priority)],
   )
   await ensureTaskUser(result.insertId, taskManager)
-  // TODO notifyGroupTaskCreate(taskManager, groupOwner) — deferred, no email system yet.
+
+  const groupTitle = await getGroupTitle(groupId)
   try {
-    const [[grp]] = await pool.query('SELECT title FROM engine4_group_groups WHERE group_id = ?', [groupId])
     await sendTaskCreatedMail({
       groupId,
-      groupTitle: grp?.title || 'your group',
+      groupTitle,
       taskId: result.insertId,
       taskTitle: title.trim(),
       taskDescription: description.trim(),
@@ -215,6 +221,20 @@ tasksRouter.post('/', asyncHandler(async (req, res) => {
   } catch (err) {
     console.error('task-created mail failed:', err.message)
   }
+  try {
+    await notify({
+      to: [taskManager],
+      actorId: req.userId,
+      type: 'task_created',
+      text: 'New Task',
+      link: `/groups/${groupId}`,
+      objectId: result.insertId,
+      meta: { title: title.trim(), group: groupTitle },
+    })
+  } catch (err) {
+    console.error('task-created notify failed:', err.message)
+  }
+
   const names = await getDisplayNames([taskManager])
   res.status(201).json({
     id: result.insertId,
@@ -327,12 +347,12 @@ tasksRouter.post('/:taskId/comments', asyncHandler(async (req, res) => {
      VALUES (?, ?, 0, ?, 1, NOW(), ?, 0)`,
     [req.userId, taskId, text.trim(), parent],
   )
-  // TODO notifyGroupTaskComment[_reply](taskManager/taskUsers) — deferred, no email system yet.
- try {
-    const [[grp]] = await pool.query('SELECT title FROM engine4_group_groups WHERE group_id = ?', [groupId])
+
+  const groupTitle = await getGroupTitle(groupId)
+  try {
     await sendTaskCommentMail({
       groupId,
-      groupTitle: grp?.title || 'your group',
+      groupTitle,
       taskId,
       taskTitle: task.course_title,
       commentText: text.trim(),
@@ -342,6 +362,20 @@ tasksRouter.post('/:taskId/comments', asyncHandler(async (req, res) => {
   } catch (err) {
     console.error('task-comment mail failed:', err.message)
   }
+  try {
+    await notify({
+      to: [task.user_id, task.task_manager],
+      actorId: req.userId,
+      type: 'task_comment',
+      text: parent ? 'New Reply' : 'New Comment',
+      link: `/groups/${groupId}`,
+      objectId: Number(taskId),
+      meta: { task: task.course_title, group: groupTitle },
+    })
+  } catch (err) {
+    console.error('task-comment notify failed:', err.message)
+  }
+
   const names = await getDisplayNames([req.userId])
   res.status(201).json({
     id: result.insertId,
@@ -393,13 +427,12 @@ tasksRouter.post('/:taskId/assignments', asyncHandler(async (req, res) => {
     [assignee, result.insertId, taskId],
   )
   await ensureTaskUser(taskId, assignee)
-  // TODO notifyGroupTaskCreateassignment(assignee, taskManager) — deferred, no email system yet.
 
+  const groupTitle = await getGroupTitle(groupId)
   try {
-    const [[grp]] = await pool.query('SELECT title FROM engine4_group_groups WHERE group_id = ?', [groupId])
     await sendAssignmentCreatedMail({
       groupId,
-      groupTitle: grp?.title || 'your group',
+      groupTitle,
       taskId,
       taskTitle: task.course_title,
       assignmentTitle: title.trim(),
@@ -412,6 +445,20 @@ tasksRouter.post('/:taskId/assignments', asyncHandler(async (req, res) => {
   } catch (err) {
     console.error('assignment mail failed:', err.message)
   }
+  try {
+    await notify({
+      to: [assignee, task.user_id, task.task_manager],
+      actorId: req.userId,
+      type: 'assignment_created',
+      text: 'New Assignment',
+      link: `/groups/${groupId}`,
+      objectId: Number(taskId),
+      meta: { title: title.trim(), task: task.course_title, group: groupTitle },
+    })
+  } catch (err) {
+    console.error('assignment notify failed:', err.message)
+  }
+
   const names = await getDisplayNames([assignee])
   res.status(201).json({
     id: result.insertId,
@@ -512,7 +559,21 @@ tasksRouter.post('/:taskId/assignments/:assignmentId/comments', asyncHandler(asy
      VALUES (?, ?, ?, ?, 1, NOW(), ?, 0)`,
     [req.userId, taskId, assignmentId, text.trim(), parent],
   )
-  // TODO notifyGroupTaskComment[_reply](assigneeOrTaskUsers) — deferred, no email system yet.
+
+  try {
+    const groupTitle = await getGroupTitle(groupId)
+    await notify({
+      to: [assignment.user_id, task.user_id, task.task_manager],
+      actorId: req.userId,
+      type: 'task_comment',
+      text: parent ? 'New Reply' : 'New Comment',
+      link: `/groups/${groupId}`,
+      objectId: Number(taskId),
+      meta: { assignment: assignment.process_title, task: task.course_title, group: groupTitle },
+    })
+  } catch (err) {
+    console.error('assignment-comment notify failed:', err.message)
+  }
 
   const names = await getDisplayNames([req.userId])
   res.status(201).json({

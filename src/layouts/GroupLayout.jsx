@@ -8,6 +8,7 @@ import {
   getMyTimesheet,
   getTimeSummary,
   getGroupTimeline,
+  getGroupManage,
 } from "../lib/api";
 import { bucketTimesheet } from "../lib/groupHelpers";
 import { useAuth } from "../lib/AuthContext";
@@ -26,7 +27,7 @@ export default function GroupLayout() {
     setLoading(true);
     setNotFound(false);
     try {
-      const [group, tasks, members, invitesPending, timesheetFlat, timeSummary, timeline] = await Promise.all([
+      const [group, tasks, members, invitesPending, timesheetFlat, timeSummary, timeline, manage] = await Promise.all([
         getGroup(groupId),
         getGroupTasks(groupId),
         getGroupMembers(groupId),
@@ -34,6 +35,7 @@ export default function GroupLayout() {
         getMyTimesheet(groupId),
         getTimeSummary(groupId),
         getGroupTimeline(groupId),
+        getGroupManage(groupId),
       ]);
       setRaw({
         info: {
@@ -49,6 +51,7 @@ export default function GroupLayout() {
         timesheet: bucketTimesheet(timesheetFlat),
         timeSummary,
         timeline,
+        manage,
         // Lessons/Forum depend on separate modules (Video, Forum) not part of
         // this rebuild yet — left empty/zeroed rather than faked.
         lessons: [],
@@ -136,7 +139,7 @@ export default function GroupLayout() {
             </div>
           </div>
           <div className="border-t border-white/10 px-3 py-5">
-            <GroupSidebar groupId={groupId} info={info} />
+            <GroupSidebar groupId={groupId} info={info} yourRole={workspace.manage?.yourRole} />
           </div>
         </div>
       </aside>

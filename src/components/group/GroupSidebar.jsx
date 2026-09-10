@@ -1,8 +1,9 @@
 import { NavLink } from "react-router-dom";
 import Icon from "./icons";
 
-export default function GroupSidebar({ groupId, info }) {
+export default function GroupSidebar({ groupId, info, yourRole }) {
   const base = `/projects/${groupId}`;
+  const canManage = yourRole === "owner" || yourRole === "officer";
 
   const sections = [
     { label: "Overview", items: [{ to: base, label: "Dashboard", icon: "grid", end: true }] },
@@ -21,6 +22,7 @@ export default function GroupSidebar({ groupId, info }) {
       items: [
         { to: `${base}/members`, label: "Members", icon: "users", badge: info.memberCount },
         { to: `${base}/invite`, label: "Invite", icon: "userPlus" },
+        ...(canManage ? [{ to: `${base}/manage`, label: "Manage group", icon: "shield" }] : []),
       ],
     },
     { label: "Activity", items: [{ to: `${base}/timeline`, label: "Timeline", icon: "pulse" }] },

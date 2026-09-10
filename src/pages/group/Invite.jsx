@@ -1,18 +1,32 @@
 import { useState } from "react";
 import { useOutletContext } from "react-router-dom";
 import { Card, EmptyState } from "../../components/group/GroupUI";
-import { inviteMember } from "../../lib/api";
+import { inviteMember, cancelInvite } from "../../lib/api";
 import { useToast } from "../../components/Toast";
 const inputBase = "w-full rounded-xl border border-line bg-white px-4 py-3 text-[15px] text-ink outline-none transition-all placeholder:text-ink/40 hover:border-forest/40 focus:border-forest focus:ring-4 focus:ring-forest/10";
 
 export default function GroupInvite() {
   const { workspace, setWorkspace } = useOutletContext();
-  const { invitesPending: pending } = workspace;
+  const { invitesPending: pending, manage } = workspace;
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [cancelingId, setCancelingId] = useState(null);
+  const canManage = manage?.yourRole === "owner" || manage?.yourRole === "officer";
 const toast = useToast();
+
+  const handleCancel = async (invite) => {
+    setCancelingId(invite.id);
+    try {
+      await cancelInvite(workspace.info.id, invite.id);
+      setWorkspace((prev) => ({ ...prev, invitesPending: prev.invitesPending.filter((p) => p.id !== invite.id) }));
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setCancelingId(null);
+    }
+  };
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!email.trim()) return;
@@ -61,7 +75,18 @@ const toast = useToast();
             {pending.map((p) => (
               <li key={p.id} className="flex items-center justify-between gap-3 rounded-xl border border-line bg-mist/50 px-4 py-3.5">
                 <span className="text-[15px] font-medium text-ink">{p.email}</span>
-                <span className="text-[13px] italic text-ink/50">Sent {p.sentDate}</span>
+                <div className="flex items-center gap-2.5">
+                  <span className="text-[13px] italic text-ink/50">Sent {p.sentDate}</span>
+                  {canManage && (
+                    <button
+                      onClick={() => handleCancel(p)}
+                      disabled={cancelingId === p.id}
+                      className="rounded-full border border-line px-2.5 py-1 text-[12px] font-semibold text-ink/50 hover:border-crimson hover:text-crimson disabled:opacity-50"
+                    >
+                      Cancel
+                    </button>
+                  )}
+                </div>
               </li>
             ))}
           </ul>

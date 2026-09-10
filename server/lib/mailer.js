@@ -1,6 +1,6 @@
 import nodemailer from "nodemailer";
 import { pool } from "../db.js";
-import { createNotifications } from "./notify.js";
+import { notify } from "./notify.js";
 
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
@@ -56,7 +56,7 @@ async function sendMany(recipients, buildMail, notify) {
   }
   if (notify) {
     try {
-      await createNotifications({
+      await notify({
         ...notify,
         // never notify the person who performed the action
         userIds: recipients.map((r) => r.user_id).filter((id) => id !== Number(notify.actorId)),
