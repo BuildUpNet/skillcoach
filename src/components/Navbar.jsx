@@ -12,11 +12,10 @@ const links = [
   { to: "/credits", label: "Credits" },
 ];
 
-const more = [
+const more = (user) => [
   ["Community", [["Coaches corner", "/coaches-corner"], ["Members", "/members"], ["Forum", "/forums"], ["Summary", "/summary"]]],
-  ["Account", [["My profile", "/profile/:sourabh"], ["Messages", "/messages"], ["Settings", "/settings"]]],
+  ["Account", [["My profile", `/profile/${user.username || user.user_id}`], ["Messages", "/messages"], ["Settings", "/settings"]]],
 ];
-
 export default function Navbar({ updates = 0 }) {
   const [open, setOpen] = useState(false);
   const [menu, setMenu] = useState(false);
@@ -80,7 +79,7 @@ export default function Navbar({ updates = 0 }) {
                   <p className="truncate text-[15px] font-bold text-ink">{user.displayname}</p>
                   <p className="truncate text-[13px] text-ink/55">{user.email}</p>
                 </div>
-                {more.map(([title, items]) => (
+                {more(user).map(([title, items]) => (
                   <div key={title}>
                     <p className="px-3 pb-1 pt-2 text-xs font-bold uppercase tracking-wider text-gold-deep">{title}</p>
                     {items.map(([label, to]) => (
@@ -118,7 +117,7 @@ export default function Navbar({ updates = 0 }) {
           {links.map((l) => (
             <NavLink key={l.to} to={l.to} onClick={() => setOpen(false)} className={({ isActive }) => `block rounded-xl px-4 py-3 text-[16px] font-semibold ${isActive ? "bg-forest text-white" : "text-ink/80"}`}>{l.label}</NavLink>
           ))}
-          {more.map(([title, items]) => (
+      {more(user).map(([title, items]) => (
             <div key={title} className="mt-2 border-t border-line pt-2">
               <p className="px-4 pb-1 text-xs font-bold uppercase tracking-wider text-gold-deep">{title}</p>
               {items.map(([label, to]) => <Link key={to} to={to} onClick={() => setOpen(false)} className="block rounded-xl px-4 py-2.5 text-[15px] font-medium text-ink/80">{label}</Link>)}

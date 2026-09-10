@@ -43,11 +43,10 @@ import ForumTopic from "../pages/forum/ForumTopic";
 
 import UpgradePage from "../pages/UpgradePage";
 import Notifications from "../pages/Notifications";
-
+import EditProfile from "../pages/EditProfile";
 import MemberHome from "../pages/MemberHome";
 
 import GroupCreateTask from "../pages/adminpages/GroupCreateTask";
-
 
 function SignInWrapper() {
   const navigate = useNavigate();
@@ -126,6 +125,9 @@ export default function AppRoutes() {
           <Route path="/delete-account" element={<SettingsGeneral defaultTab="Delete Account" />} />
           <Route path="/group/:id/create-task" element={<GroupCreateTask />} />
 
+          <Route path="/profile/edit" element={<EditProfile />} />
+          <Route path="/profile/edit/:tab" element={<EditProfile />} />
+
           <Route element={<RequireAdmin />}>
             <Route path="/admin" element={<AdminLayout />}>
               <Route index element={<Navigate to="/admin/roles" replace />} />
@@ -137,7 +139,7 @@ export default function AppRoutes() {
             </Route>
           </Route>
         </Route>
-
+      
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>

@@ -1,376 +1,242 @@
-import { useState, useMemo, useRef, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
+import { MemberAvatar } from "../components/GroupHoverCard";
+import {
+  getMembers, getFriendRequests, sendFriendRequest, cancelFriendRequest,
+  acceptFriendRequest, declineFriendRequest, removeFriend,
+} from "../lib/api";
 
-const USER_TYPES = ["All Types", "Normal User", "SkillCoach", "Admin"];
-const GENDERS = ["All Genders", "Male", "Female", "Other"];
+const input = "w-full rounded-full border border-line bg-white px-4 py-2.5 text-[15px] text-ink placeholder:text-ink/40 focus:border-forest focus:outline-none focus:ring-4 focus:ring-forest/10";
 
-const INITIAL_MEMBERS = [
-  {
-    id: "m1",
-    username: "shreegemsandjewel",
-    name: "Shree Gems & Jewel",
-    role: "Normal User",
-    gender: "Other",
-    hasPhoto: true,
-    avatar: "SG",
-    joined: "Aug 2026",
-    mutualFriends: 2,
-  },
-  {
-    id: "m2",
-    username: "priyanair",
-    name: "Priya Nair",
-    role: "SkillCoach",
-    gender: "Female",
-    hasPhoto: true,
-    avatar: "PN",
-    joined: "Jul 2026",
-    mutualFriends: 5,
-  },
-  {
-    id: "m3",
-    username: "thomaskee",
-    name: "Thomas Kee",
-    role: "SkillCoach",
-    gender: "Male",
-    hasPhoto: true,
-    avatar: "TK",
-    joined: "Jun 2026",
-    mutualFriends: 8,
-  },
-  {
-    id: "m4",
-    username: "marcuswebb",
-    name: "Marcus Webb",
-    role: "Normal User",
-    gender: "Male",
-    hasPhoto: false,
-    avatar: "MW",
-    joined: "May 2026",
-    mutualFriends: 1,
-  },
-  {
-    id: "m5",
-    username: "danakimura",
-    name: "Dana Kimura",
-    role: "SkillCoach",
-    gender: "Female",
-    hasPhoto: true,
-    avatar: "DK",
-    joined: "Apr 2026",
-    mutualFriends: 4,
-  },
-  {
-    id: "m6",
-    username: "jordanblake",
-    name: "Jordan Blake",
-    role: "Normal User",
-    gender: "Male",
-    hasPhoto: true,
-    avatar: "JB",
-    joined: "Mar 2026",
-    mutualFriends: 0,
-  },
-];
+function useDebounced(value, ms = 350) {
+  const [v, setV] = useState(value);
+  useEffect(() => { const t = setTimeout(() => setV(value), ms); return () => clearTimeout(t); }, [value, ms]);
+  return v;
+}
 
-function CustomDropdown({ id, label, value, options, onChange }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef(null);
+/* One button (or pair) that reflects the friendship state and performs the action */
+export function FriendButton({ member, onChange, size = "md" }) {
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const sz = size === "sm" ? "px-3.5 py-2 text-[14px]" : "py-2.5 text-[14.5px]";
+  const run = async (fn, next) => {
+    setBusy(true); setErr("");
+    try {
+      const r = await fn(member.id);
+      onChange?.(r.relation ?? next);
+    } catch (e) {
+      setErr(e.message || "Something went wrong");
+    } finally { setBusy(false); }
+  };
 
-  useEffect(() => {
-    function handleClickOutside(e) {
-      if (ref.current && !ref.current.contains(e.target)) {
-        setOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  return (
-    <div ref={ref} className="relative w-full min-w-0 max-w-full">
-      <label htmlFor={id} className="block text-xs font-semibold text-[#19352d] mb-1.5">
-        {label}
-      </label>
-      <button
-        id={id}
-        type="button"
-        onClick={() => setOpen((prev) => !prev)}
-        aria-expanded={open}
-        aria-haspopup="listbox"
-        className="w-full h-11 sm:h-12 flex items-center justify-between rounded-xl border border-gray-200 bg-[#fbfcfb] px-3.5 sm:px-4 text-sm font-medium text-[#19352d] outline-none transition-all hover:border-[#19352d]/40 focus:border-[#19352d] focus:bg-white focus:ring-2 focus:ring-[#19352d]/15 shadow-2xs text-left"
-      >
-        <span className="truncate">{value}</span>
-        <svg
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2.2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className={`shrink-0 ml-2 text-[#19352d]/60 transition-transform duration-200 ${
-            open ? "rotate-180 text-[#19352d]" : ""
-          }`}
-        >
-          <path d="m6 9 6 6 6-6" />
-        </svg>
+  if (member.relation === "self") {
+    return <span className={`flex w-full items-center justify-center rounded-full border border-line ${sz} font-semibold text-ink/40`}>That's you</span>;
+  }
+  if (member.relation === "friends") {
+    return (
+      <button disabled={busy} onClick={() => { if (confirm(`Remove ${member.name} from your friends?`)) run(removeFriend, "none"); }}
+        className={`group flex w-full items-center justify-center gap-2 rounded-full bg-forest-soft ${sz} font-semibold text-forest transition-colors hover:bg-crimson/10 hover:text-crimson disabled:opacity-60`}>
+        <span className="group-hover:hidden">✓ Friends</span><span className="hidden group-hover:inline">Remove friend</span>
       </button>
+    );
+  }
+  if (member.relation === "requested") {
+    return (
+      <button disabled={busy} onClick={() => run(cancelFriendRequest, "none")}
+        className={`flex w-full items-center justify-center rounded-full border border-line bg-white ${sz} font-semibold text-ink/70 transition-colors hover:border-crimson/40 hover:text-crimson disabled:opacity-60`}>
+        {busy ? "Cancelling…" : "Cancel request"}
+      </button>
+    );
+  }
+  if (member.relation === "incoming") {
+    return (
+      <div className="flex w-full gap-2">
+        <button disabled={busy} onClick={() => run(acceptFriendRequest, "friends")}
+          className={`flex-1 rounded-full bg-forest ${sz} font-semibold text-white hover:bg-forest-deep disabled:opacity-60`}>Accept</button>
+        <button disabled={busy} onClick={() => run(declineFriendRequest, "none")}
+          className={`flex-1 rounded-full border border-line bg-white ${sz} font-semibold text-ink/70 hover:border-crimson/40 hover:text-crimson disabled:opacity-60`}>Decline</button>
+      </div>
+    );
+  }
+  return (
+    <div className="w-full">
+      <button disabled={busy} onClick={() => run(sendFriendRequest, "requested")}
+        className={`flex w-full items-center justify-center gap-2 rounded-full bg-forest ${sz} font-semibold text-white transition-colors hover:bg-forest-deep disabled:opacity-60`}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4">
+          <circle cx="9" cy="8" r="3" /><path d="M3.5 19c.6-3 2.8-4.6 5.5-4.6s4.9 1.6 5.5 4.6" strokeLinecap="round" /><path d="M18 8v5M15.5 10.5h5" strokeLinecap="round" />
+        </svg>
+        {busy ? "Sending…" : "Add friend"}
+      </button>
+      {err && <p className="mt-1.5 text-center text-[12.5px] text-red-600">{err}</p>}
+    </div>
+  );
+}
 
-      {open && (
-        <ul
-          role="listbox"
-          aria-label={label}
-          className="absolute left-0 right-0 top-[calc(100%+6px)] z-50 w-full min-w-full max-w-full rounded-xl border border-gray-200/90 bg-white py-1 shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-1 duration-150"
-        >
-          {options.map((opt) => {
-            const isSelected = opt === value;
-            return (
-              <li key={opt}>
-                <button
-                  type="button"
-                  role="option"
-                  aria-selected={isSelected}
-                  onClick={() => {
-                    onChange(opt);
-                    setOpen(false);
-                  }}
-                  className={`w-full flex items-center justify-between px-3.5 py-2.5 text-sm text-left transition-colors ${
-                    isSelected
-                      ? "bg-emerald-50 text-[#19352d] font-bold"
-                      : "text-gray-700 hover:bg-gray-50 active:bg-gray-100"
-                  }`}
-                >
-                  <span className="truncate">{opt}</span>
-                  {isSelected && (
-                    <svg
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="shrink-0 ml-2 text-[#19352d]"
-                    >
-                      <path d="M20 6 9 17l-5-5" />
-                    </svg>
-                  )}
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-      )}
+function MemberCard({ member, onRelation }) {
+  const to = `/profile/${member.username}`;
+  return (
+    <div className="rounded-2xl border border-line bg-white p-5 shadow-sm transition-shadow hover:shadow-md">
+      <div className="flex items-center gap-4">
+        <Link to={to} className="flex-none"><MemberAvatar member={member} size="h-16 w-16 text-[22px]" className="rounded-2xl" /></Link>
+        <div className="min-w-0">
+          <Link to={to} className="block truncate text-[16px] font-bold text-ink hover:text-forest">{member.name}</Link>
+          <p className="text-[14px] text-ink/55">{member.type}</p>
+          <p className="text-[13px] text-ink/45">{member.friends} friend{member.friends === 1 ? "" : "s"}</p>
+        </div>
+      </div>
+      <div className="mt-4">
+        <FriendButton member={member} onChange={(rel) => onRelation(member.id, rel)} />
+      </div>
     </div>
   );
 }
 
 export default function Members() {
-  const [searchName, setSearchName] = useState("");
-  const [userType, setUserType] = useState("All Types");
-  const [gender, setGender] = useState("All Genders");
-  const [onlyPhotos, setOnlyPhotos] = useState(false);
-  const [friendsList, setFriendsList] = useState({});
+  const [params, setParams] = useSearchParams();
+  const [q, setQ] = useState(params.get("q") || "");
+  const [type, setType] = useState(params.get("type") || "");
+  const [photo, setPhoto] = useState(params.get("photo") === "1");
+  const [page, setPage] = useState(Number(params.get("page")) || 1);
+  const tab = params.get("tab") === "requests" ? "requests" : "all";
 
-  const filteredMembers = useMemo(() => {
-    return INITIAL_MEMBERS.filter((m) => {
-      const matchName =
-        !searchName ||
-        m.username.toLowerCase().includes(searchName.toLowerCase()) ||
-        m.name.toLowerCase().includes(searchName.toLowerCase());
-      const matchType = userType === "All Types" || m.role === userType;
-      const matchGender = gender === "All Genders" || m.gender === gender;
-      const matchPhoto = !onlyPhotos || m.hasPhoto;
-      return matchName && matchType && matchGender && matchPhoto;
-    });
-  }, [searchName, userType, gender, onlyPhotos]);
+  const dq = useDebounced(q);
+  const [data, setData] = useState(null);
+  const [requests, setRequests] = useState([]);
+  const [error, setError] = useState("");
 
-  const toggleFriend = (id) => {
-    setFriendsList((prev) => ({
-      ...prev,
-      [id]: !prev[id],
-    }));
+  useEffect(() => { setPage(1); }, [dq, type, photo]);
+
+  useEffect(() => {
+    setError("");
+    getMembers({ q: dq, type, photo, page })
+      .then(setData)
+      .catch((e) => setError(e.message || "Couldn't load members."));
+  }, [dq, type, photo, page]);
+
+  useEffect(() => { getFriendRequests().then(setRequests).catch(() => setRequests([])); }, []);
+
+  const setTab = (t) => { const p = new URLSearchParams(params); t === "requests" ? p.set("tab", "requests") : p.delete("tab"); setParams(p); };
+
+  const onRelation = (id, rel) => {
+    setData((d) => d && ({ ...d, members: d.members.map((m) => (m.id === id ? { ...m, relation: rel } : m)) }));
+    if (rel !== "incoming") setRequests((r) => r.filter((x) => x.id !== id));
   };
 
+  const filtersActive = q || type || photo;
+  const clear = () => { setQ(""); setType(""); setPhoto(false); };
+
   return (
-    <div className="w-full overflow-x-hidden">
-      <main className="mx-auto w-full max-w-4xl px-4 py-6 sm:px-6 sm:py-8">
-        {/* Page Title */}
-        <header className="mb-6">
-          <p className="text-xs font-bold uppercase tracking-wider text-[#d99b26]">
-            COMMUNITY
-          </p>
-          <h1 className="mt-1 text-2xl sm:text-3xl font-extrabold text-[#19352d] tracking-tight">
-            Members Directory
+    <div className="mx-auto max-w-[1200px] px-4 py-8">
+      <div className="relative mb-8 overflow-hidden rounded-3xl bg-gradient-to-br from-forest to-forest-deep px-8 py-9 sm:px-10">
+        <div className="pointer-events-none absolute inset-0" style={{ backgroundImage: "radial-gradient(rgba(244,246,245,0.14) 1px, transparent 1px)", backgroundSize: "22px 22px" }} />
+        <div className="pointer-events-none absolute -top-28 -left-20 h-80 w-80 rounded-full bg-gold/30 blur-[90px]" />
+        <div className="relative z-10">
+          <p className="mb-2 text-sm font-semibold text-gold">Community</p>
+          <h1 className="text-3xl font-extrabold text-white sm:text-4xl">
+            {data ? `${data.total.toLocaleString()} members strong.` : "Members"}
           </h1>
-          <p className="mt-1 text-sm text-[#6b7a75]">
-            Discover coaches, peers, and fellow members across the platform.
-          </p>
-        </header>
-
-        {/* Search & Filter Card */}
-        <section className="mb-6 rounded-2xl border border-gray-200/80 bg-white p-4 sm:p-6 shadow-sm">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            {/* Search by Name */}
-            <div className="relative w-full min-w-0 max-w-full">
-              <label htmlFor="member-search" className="block text-xs font-semibold text-[#19352d] mb-1.5">
-                Search Name / Username
-              </label>
-              <div className="relative w-full">
-                <input
-                  id="member-search"
-                  type="text"
-                  value={searchName}
-                  onChange={(e) => setSearchName(e.target.value)}
-                  placeholder="e.g. shreegems"
-                  className="w-full h-11 sm:h-12 rounded-xl border border-gray-200 bg-[#fbfcfb] px-3.5 pl-9 text-sm text-[#19352d] placeholder:text-gray-400 outline-none transition-colors hover:border-[#19352d]/40 focus:border-[#19352d] focus:bg-white focus:ring-2 focus:ring-[#19352d]/15"
-                />
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
-                >
-                  <circle cx="11" cy="11" r="7" />
-                  <path d="M20 20l-3.5-3.5" strokeLinecap="round" />
-                </svg>
-              </div>
-            </div>
-
-            {/* User Type Custom Dropdown */}
-            <CustomDropdown
-              id="user-type-dropdown"
-              label="User Type"
-              value={userType}
-              options={USER_TYPES}
-              onChange={setUserType}
-            />
-
-            {/* Gender Custom Dropdown */}
-            <CustomDropdown
-              id="gender-dropdown"
-              label="Gender"
-              value={gender}
-              options={GENDERS}
-              onChange={setGender}
-            />
-          </div>
-
-          {/* Checkbox Section */}
-          <div className="mt-4 pt-3 border-t border-gray-100 flex flex-wrap items-center justify-between gap-3">
-            <label className="group flex cursor-pointer select-none items-center gap-2.5 text-sm text-[#19352d]">
-              <input
-                type="checkbox"
-                checked={onlyPhotos}
-                onChange={(e) => setOnlyPhotos(e.target.checked)}
-                className="h-4 w-4 rounded border-gray-300 accent-[#19352d] cursor-pointer"
-              />
-              <span className="text-sm font-medium text-[#19352d]/80 group-hover:text-[#19352d]">
-                Only members with photos
-              </span>
-            </label>
-
-            {(searchName || userType !== "All Types" || gender !== "All Genders" || onlyPhotos) && (
-              <button
-                type="button"
-                onClick={() => {
-                  setSearchName("");
-                  setUserType("All Types");
-                  setGender("All Genders");
-                  setOnlyPhotos(false);
-                }}
-                className="text-xs font-semibold text-[#d99b26] hover:underline"
-              >
-                Reset filters
-              </button>
-            )}
-          </div>
-        </section>
-
-        {/* Result Meta Header */}
-        <div className="mb-4 flex items-center justify-between px-1">
-          <p className="text-xs font-bold uppercase tracking-wider text-gray-500">
-            {filteredMembers.length} {filteredMembers.length === 1 ? "member" : "members"} found
+          <p className="mt-2 max-w-lg text-[15px] leading-relaxed text-white/70">
+            Find people to learn alongside, add a friend, and see what they're working on.
           </p>
         </div>
+      </div>
 
-        {/* Member Result Listing */}
-        {filteredMembers.length === 0 ? (
-          <div className="rounded-2xl border border-gray-200/80 bg-white p-10 text-center text-sm text-[#6b7a75] shadow-sm">
-            <p className="text-base font-semibold text-[#19352d] mb-1">No members found</p>
-            <p>Try clearing your filters or searching with a different name.</p>
+      {/* tabs */}
+      <div className="mb-5 flex gap-1.5 rounded-2xl bg-white p-1.5 ring-1 ring-line sm:w-fit">
+        {[["all", "All members"], ["requests", `Friend requests${requests.length ? ` (${requests.length})` : ""}`]].map(([k, l]) => (
+          <button key={k} onClick={() => setTab(k)}
+            className={`rounded-xl px-4 py-2.5 text-[15px] font-semibold transition-colors ${tab === k ? "bg-forest text-white" : "text-ink/60 hover:text-ink"}`}>
+            {l}
+          </button>
+        ))}
+      </div>
+
+      {tab === "requests" ? (
+        requests.length ? (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {requests.map((r) => (
+              <div key={r.id} className="rounded-2xl border border-line bg-white p-5 shadow-sm">
+                <div className="flex items-center gap-4">
+                  <Link to={`/profile/${r.username}`}><MemberAvatar member={r} size="h-14 w-14 text-[20px]" className="rounded-2xl" /></Link>
+                  <div className="min-w-0">
+                    <Link to={`/profile/${r.username}`} className="block truncate text-[16px] font-bold text-ink hover:text-forest">{r.name}</Link>
+                    <p className="text-[14px] text-ink/55">wants to be your friend</p>
+                  </div>
+                </div>
+                <div className="mt-4">
+                  <FriendButton member={{ ...r, relation: "incoming" }} onChange={(rel) => onRelation(r.id, rel)} />
+                </div>
+              </div>
+            ))}
           </div>
         ) : (
-          <div className="space-y-3">
-            {filteredMembers.map((member) => {
-              const isFriend = !!friendsList[member.id];
-              return (
-                <article
-                  key={member.id}
-                  className="rounded-2xl border border-gray-200/80 bg-white p-4 sm:p-5 shadow-sm transition-all hover:border-[#19352d]/30 hover:shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-4"
-                >
-                  <div className="flex items-center gap-3.5 min-w-0">
-                    <div className="relative grid h-12 w-12 sm:h-13 sm:w-13 shrink-0 place-items-center rounded-full bg-[#19352d] font-bold text-white shadow-sm">
-                      {member.avatar}
-                      {member.hasPhoto && (
-                        <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white bg-green-500" />
-                      )}
-                    </div>
-
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Link
-                          to={`/profile/${member.username}`}
-                          className="truncate font-bold text-[15px] sm:text-base text-[#19352d] hover:text-[#d99b26] transition-colors"
-                        >
-                          {member.username}
-                        </Link>
-                        <span
-                          className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${
-                            member.role === "SkillCoach"
-                              ? "bg-amber-100 text-[#d99b26]"
-                              : "bg-emerald-50 text-[#19352d]"
-                          }`}
-                        >
-                          {member.role}
-                        </span>
-                      </div>
-                      <p className="mt-0.5 text-xs text-[#6b7a75]">
-                        Joined {member.joined}
-                        {member.mutualFriends > 0 && ` · ${member.mutualFriends} mutual friends`}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-gray-100">
-                    <button
-                      type="button"
-                      onClick={() => toggleFriend(member.id)}
-                      className={`w-full sm:w-auto px-4 py-2.5 text-xs sm:text-sm font-semibold rounded-xl transition-all active:scale-[0.98] shadow-sm ${
-                        isFriend
-                          ? "border border-gray-200 bg-gray-50 text-gray-600 hover:bg-gray-100"
-                          : "bg-[#19352d] hover:bg-[#122721] text-white"
-                      }`}
-                    >
-                      {isFriend ? "✓ Friend Request Sent" : "+ Add friend"}
-                    </button>
-                    <Link
-                      to={`/profile/${member.username}`}
-                      className="hidden sm:inline-flex items-center justify-center px-3 py-2.5 text-xs font-semibold text-[#19352d] rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors"
-                    >
-                      View profile
-                    </Link>
-                  </div>
-                </article>
-              );
-            })}
+          <div className="rounded-2xl border border-line bg-white p-10 text-center text-ink/60 shadow-sm">No pending friend requests.</div>
+        )
+      ) : (
+        <>
+          <div className="mb-6 rounded-2xl border border-line bg-white p-5 shadow-sm">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div>
+                <label className="mb-1 block text-[13px] font-semibold text-ink/60">Name</label>
+                <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by name or username" className={input} />
+              </div>
+              <div>
+                <label className="mb-1 block text-[13px] font-semibold text-ink/60">Member type</label>
+                <select value={type} onChange={(e) => setType(e.target.value)} className={input}>
+                  <option value="">All</option>
+                  {(data?.levels || []).map((l) => <option key={l} value={l}>{l}</option>)}
+                </select>
+              </div>
+              <label className="flex items-center gap-2.5 self-end pb-2.5 text-[15px] text-ink/75">
+                <input type="checkbox" checked={photo} onChange={(e) => setPhoto(e.target.checked)} className="h-4 w-4 accent-forest" />
+                Only members with photos
+              </label>
+            </div>
+            {filtersActive && (
+              <div className="mt-4 border-t border-line pt-3">
+                <button onClick={clear} className="text-[14.5px] font-semibold text-forest hover:text-gold-deep">Clear filters</button>
+              </div>
+            )}
           </div>
-        )}
-      </main>
+
+          {error && <p className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-[14.5px] text-red-700 ring-1 ring-red-100">{error}</p>}
+
+          {!data ? (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {Array.from({ length: 8 }).map((_, i) => <div key={i} className="h-40 animate-pulse rounded-2xl bg-white ring-1 ring-line" />)}
+            </div>
+          ) : data.members.length === 0 ? (
+            <div className="rounded-2xl border border-line bg-white p-10 text-center text-ink/60 shadow-sm">No members match your filters.</div>
+          ) : (
+            <>
+              <p className="mb-4 text-[14px] text-ink/50">
+                Showing {(data.page - 1) * data.pageSize + 1}–{Math.min(data.page * data.pageSize, data.total)} of {data.total.toLocaleString()}
+              </p>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                {data.members.map((m) => <MemberCard key={m.id} member={m} onRelation={onRelation} />)}
+              </div>
+            </>
+          )}
+
+          {data && data.pages > 1 && (
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-1">
+              <button disabled={page <= 1} onClick={() => setPage((p) => p - 1)} className="rounded-full px-3 py-1.5 text-[14.5px] font-semibold text-ink/60 hover:bg-forest-soft hover:text-forest disabled:opacity-40">« Prev</button>
+              {Array.from({ length: data.pages }, (_, i) => i + 1)
+                .filter((p) => p === 1 || p === data.pages || Math.abs(p - page) <= 2)
+                .map((p, i, arr) => (
+                  <span key={p} className="flex items-center">
+                    {i > 0 && arr[i - 1] !== p - 1 && <span className="px-1 text-ink/40">…</span>}
+                    <button onClick={() => setPage(p)}
+                      className={`h-9 w-9 rounded-full text-[14.5px] font-semibold transition-colors ${page === p ? "bg-forest text-white" : "text-ink/60 hover:bg-forest-soft hover:text-forest"}`}>
+                      {p}
+                    </button>
+                  </span>
+                ))}
+              <button disabled={page >= data.pages} onClick={() => setPage((p) => p + 1)} className="rounded-full px-3 py-1.5 text-[14.5px] font-semibold text-ink/60 hover:bg-forest-soft hover:text-forest disabled:opacity-40">Next »</button>
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }
