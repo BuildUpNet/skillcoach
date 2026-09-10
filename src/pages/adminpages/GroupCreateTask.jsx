@@ -5,6 +5,11 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Link, useParams } from "react-router-dom";
+import GroupStylesModal from "../../components/GroupStylesModal";
+import DeleteGroupModal from "../../components/DeleteGroupModal";
+import ShareGroupModal from "../../components/ShareGroupModal";
+
+
 import {
   Pencil,
   Palette,
@@ -48,12 +53,12 @@ const GROUP = {
 };
 
 const OPTIONS = [
-  { label: "Edit Group Details", icon: Pencil, to: "#" },
-  { label: "Edit Group Style", icon: Palette, to: "#" },
-  { label: "Delete Group", icon: Trash2, to: "#", danger: true },
-  { label: "Share Group", icon: Share2, to: "#" },
-  { label: "Message Members", icon: Mail, to: "#" },
-  { label: "Invite Friends", icon: UserPlus, to: "#" },
+  { label: "Edit Group Details", icon: Pencil, to: `/groups/edit/${GROUP.id}` },
+  { label: "Edit Group Style", icon: Palette, action: "styles" },
+  { label: "Delete Group", icon: Trash2, action: "delete", danger: true },
+  { label: "Share Group", icon: Share2, action: "share" },
+  { label: "Message Members", icon: Mail, to: `/messages/compose/to/${GROUP.id}/multi/group` },
+{ label: "Invite Friends", icon: UserPlus, to: `/groups/invite/${GROUP.id}` },
 ];
 
 const MEMBERS = [
@@ -313,36 +318,50 @@ function GroupCard() {
   );
 }
 
-function OptionsList() {
+  function OptionsList({ activeAction, onAction }) {
   return (
     <nav aria-label="Group options" className="rounded-2xl border border-gray-200/80 bg-white p-3 shadow-[0_18px_40px_-28px_rgba(18,39,33,0.45)]">
       <p className="px-3 pb-2 pt-1 text-sm font-bold uppercase tracking-wide text-[#19352d]/55">Options</p>
       <ul className="space-y-0.5">
-        {OPTIONS.map(({ label, icon: Icon, to, danger }) => (
-          <li key={label}>
-            <Link
-              to={to}
-              className={`group flex items-center gap-3 rounded-xl px-3 py-2.5 text-[15px] font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#19352d]/30 ${
-                danger
-                  ? "text-rose-700 hover:bg-rose-50"
-                  : "text-[#19352d] hover:bg-[#f4f6f3]"
-              }`}
-            >
-              <span
-                className={`grid h-9 w-9 place-items-center rounded-lg ${
-                  danger ? "bg-rose-50 text-rose-600" : "bg-[#19352d]/[0.06] text-[#19352d] group-hover:bg-[#d99b26]/20 group-hover:text-[#8a5f0f]"
-                }`}
-              >
-                <Icon className="h-4 w-4" />
-              </span>
+        {OPTIONS.map(({ label, icon: Icon, to, action, danger }) => {
+          const active = action && action === activeAction;
+          const cls = `group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[15px] font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#19352d]/30 ${
+            danger
+              ? "text-rose-700 hover:bg-rose-50"
+              : active
+              ? "bg-[#19352d] text-white"
+              : "text-[#19352d] hover:bg-[#f4f6f3]"
+          }`;
+          const iconCls = `grid h-9 w-9 place-items-center rounded-lg ${
+            danger
+              ? "bg-rose-50 text-rose-600"
+              : active
+              ? "bg-[#d99b26] text-[#122721]"
+              : "bg-[#19352d]/[0.06] text-[#19352d] group-hover:bg-[#d99b26]/20 group-hover:text-[#8a5f0f]"
+          }`;
+          const inner = (
+            <>
+              <span className={iconCls}><Icon className="h-4 w-4" /></span>
               {label}
-            </Link>
-          </li>
-        ))}
+            </>
+          );
+          return (
+            <li key={label}>
+              {action ? (
+                <button type="button" onClick={() => onAction(action)} aria-pressed={active} className={cls}>
+                  {inner}
+                </button>
+              ) : (
+                <Link to={to} className={cls}>{inner}</Link>
+              )}
+            </li>
+          );
+        })}
       </ul>
     </nav>
   );
 }
+
 
 function GroupInfo() {
   return (
@@ -679,25 +698,50 @@ function PostTaskForm() {
 /*  Page                                                               */
 /* ------------------------------------------------------------------ */
 export default function GroupCreateTask() {
-  const { id } = useParams(); // e.g. /group/34 — wire GROUP fetch to this later
+  const { id } = useParams();
+  const [activeAction, setActiveAction] = useState(null);
+  const [groupCss, setGroupCss] = useState(""); // TODO: load from API
 
   return (
     <div className="bg-[#f4f6f3] font-[Manrope,ui-sans-serif,system-ui] text-[#19352d]">
       <div className="mx-auto max-w-7xl px-4 pb-16 pt-6 sm:px-6 lg:px-8">
         <GroupHeader />
-
         <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-[18rem_1fr] lg:gap-8">
           <aside className="space-y-6 lg:sticky lg:top-24 lg:self-start">
             <GroupCard />
-            <OptionsList />
+            <OptionsList activeAction={activeAction} onAction={setActiveAction} />
             <GroupInfo />
           </aside>
-
           <main>
             <PostTaskForm />
           </main>
         </div>
       </div>
+
+      <GroupStylesModal
+        open={activeAction === "styles"}
+        onClose={() => setActiveAction(null)}
+        initialCss={groupCss}
+        onSave={(css) => setGroupCss(css)} // TODO: PUT /api/groups/:id/styles
+      />
+      <DeleteGroupModal
+  open={activeAction === "delete"}
+  onClose={() => setActiveAction(null)}
+        groupName={GROUP.name}
+        onConfirm={() => {
+          // TODO: DELETE /api/groups/:id  then navigate("/projects")
+          alert("Group deleted");
+        }}
+      />  
+      <ShareGroupModal
+  open={activeAction === "share"}
+  onClose={() => setActiveAction(null)}
+  group={GROUP}
+  onShare={(message) => {
+    // TODO: POST /api/groups/:id/share { message }
+    console.log("share:", message);
+  }}
+/>
     </div>
   );
 }
