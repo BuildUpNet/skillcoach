@@ -82,14 +82,18 @@ export default function AppRoutes() {
   return (
     <Routes>
       <Route element={<AppLayout />}>
+        {/* public */}
         <Route path="/" element={<SignInWrapper />} />
         <Route path="/signup" element={<SignUpWrapper />} />
         <Route path="/settings/upgrade" element={<UpgradePage />} />
+
+        {/* signed-in members */}
         <Route element={<RequireAuth />}>
           <Route path="/home" element={<MemberHome />} />
           <Route path="/members/home" element={<MemberHome />} />
           <Route path="/member-home" element={<MemberHome />} />
           <Route path="/projects" element={<Projects />} />
+
           <Route path="/projects/:groupId" element={<GroupLayout />}>
             <Route index element={<GroupDashboard />} />
             <Route path="my-tasks" element={<GroupMyTasks />} />
@@ -104,10 +108,13 @@ export default function AppRoutes() {
             <Route path="tasks" element={<GroupTasks />} />
             <Route path="tasks/:taskId" element={<TaskDetail />} />
           </Route>
+
           <Route path="/group/create" element={<CreateGroup />} />
           <Route path="/group/edit/:groupId" element={<EditGroup />} />
           <Route path="/group/browser" element={<BrowseGroups />} />
           <Route path="/profile/:username" element={<MemberProfile />} />
+          <Route path="/profile/edit" element={<EditProfile />} />
+          <Route path="/profile/edit/:tab" element={<EditProfile />} />
           <Route path="/settings" element={<SettingsGeneral />} />
           <Route path="/settings/:tab" element={<SettingsGeneral />} />
           <Route path="/instruction" element={<Instruction />} />
@@ -126,36 +133,30 @@ export default function AppRoutes() {
           <Route path="/timeline" element={<SettingsGeneral defaultTab="Timeline" />} />
           <Route path="/change-password" element={<SettingsGeneral defaultTab="Change Password" />} />
           <Route path="/delete-account" element={<SettingsGeneral defaultTab="Delete Account" />} />
+
           <Route path="/group/:id/create-task" element={<GroupCreateTask />} />
-<<<<<<< HEAD
           <Route path="/groups/edit/:id" element={<GroupEditDetails />} />
+          <Route path="/groups/invite/:id" element={<GroupInviteFriends />} />
 
           <Route path="/messages/inbox" element={<GroupMessages tab="inbox" />} />
           <Route path="/messages/outbox" element={<GroupMessages tab="outbox" />} />
           <Route path="/messages/outbox/page/:page" element={<GroupMessages tab="outbox" />} />
           <Route path="/messages/compose" element={<GroupMessages tab="compose" />} />
           <Route path="/messages/compose/to/:groupId/multi/group" element={<GroupMessages tab="compose" />} />
-          <Route path="/groups/invite/:id" element={<GroupInviteFriends />} />
-          
         </Route>
-=======
->>>>>>> 62b1b8cc7a8021811b3ddc0870bb2f29765b7dd0
 
-          <Route path="/profile/edit" element={<EditProfile />} />
-          <Route path="/profile/edit/:tab" element={<EditProfile />} />
-
-          <Route element={<RequireAdmin />}>
-            <Route path="/admin" element={<AdminLayout />}>
-              <Route index element={<Navigate to="/admin/roles" replace />} />
-              <Route path="roles" element={<AdminRoles />} />
-              <Route path="users" element={<AdminUsers />} />
-              <Route path="groups" element={<AdminGroups />} />
-              {/* <Route path="settings" element={<AdminSettings />} /> temporarily disabled, no clear use case yet */}
-              <Route path="logs" element={<AdminLogs />} />
-            </Route>
+        {/* admin */}
+        <Route element={<RequireAdmin />}>
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route index element={<Navigate to="/admin/roles" replace />} />
+            <Route path="roles" element={<AdminRoles />} />
+            <Route path="users" element={<AdminUsers />} />
+            <Route path="groups" element={<AdminGroups />} />
+            {/* <Route path="settings" element={<AdminSettings />} /> temporarily disabled, no clear use case yet */}
+            <Route path="logs" element={<AdminLogs />} />
           </Route>
         </Route>
-      
+
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>
