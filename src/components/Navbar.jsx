@@ -58,6 +58,11 @@ export default function Navbar({ updates = 0 }) {
         </Link>
 
         <nav className="mx-auto hidden items-center gap-1 lg:flex">
+          {user.role?.isAdmin && (
+            <NavLink to="/admin/roles" className={({ isActive }) => `${pill} ${isActive ? "bg-forest text-white hover:bg-forest hover:text-white" : ""}`}>
+              Admin
+            </NavLink>
+          )}
           {links.map((l) => (
             <NavLink key={l.to} to={l.to} className={({ isActive }) => `${pill} ${isActive ? "bg-forest text-white hover:bg-forest hover:text-white" : ""}`}>
               {l.label}
@@ -107,6 +112,9 @@ export default function Navbar({ updates = 0 }) {
             <p className="truncate text-[16px] font-bold text-ink">{user.displayname}</p>
             <p className="truncate text-[13.5px] text-ink/55">{user.email}</p>
           </div>
+          {user.role?.isAdmin && (
+            <NavLink to="/admin/roles" onClick={() => setOpen(false)} className={({ isActive }) => `block rounded-xl px-4 py-3 text-[16px] font-semibold ${isActive ? "bg-forest text-white" : "text-ink/80"}`}>Admin</NavLink>
+          )}
           {links.map((l) => (
             <NavLink key={l.to} to={l.to} onClick={() => setOpen(false)} className={({ isActive }) => `block rounded-xl px-4 py-3 text-[16px] font-semibold ${isActive ? "bg-forest text-white" : "text-ink/80"}`}>{l.label}</NavLink>
           ))}

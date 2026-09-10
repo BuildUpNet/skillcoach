@@ -66,6 +66,18 @@ export const getGroupMembers = (groupId) => request(`/api/groups/${groupId}/memb
 export const getGroupInvites = (groupId) => request(`/api/groups/${groupId}/members/invites`);
 export const inviteMember = (groupId, email) =>
   request(`/api/groups/${groupId}/members/invite`, { method: "POST", body: JSON.stringify({ email }) });
+export const removeMember = (groupId, userId) =>
+  request(`/api/groups/${groupId}/members/${userId}`, { method: "DELETE" });
+export const cancelInvite = (groupId, userId) =>
+  request(`/api/groups/${groupId}/members/invites/${userId}`, { method: "DELETE" });
+
+export const getGroupManage = (groupId) => request(`/api/groups/${groupId}/settings/manage`);
+export const promoteOfficer = (groupId, userId) =>
+  request(`/api/groups/${groupId}/settings/officers`, { method: "POST", body: JSON.stringify({ userId }) });
+export const demoteOfficer = (groupId, userId) =>
+  request(`/api/groups/${groupId}/settings/officers/${userId}`, { method: "DELETE" });
+export const setGroupPrivacy = (groupId, action, minRole) =>
+  request(`/api/groups/${groupId}/settings/privacy/${action}`, { method: "PUT", body: JSON.stringify({ minRole }) });
 
 export const getMyTimesheet = (groupId) => request(`/api/groups/${groupId}/timesheet`);
 export const getTimeSummary = (groupId) => request(`/api/groups/${groupId}/time-summary`);
@@ -96,3 +108,35 @@ export const markAllNotificationsRead = () => request("/api/notifications/read-a
 export const getMyInvites = () => request("/api/invites");
 export const acceptInvite = (groupId) => request(`/api/invites/${groupId}/accept`, { method: "POST" });
 export const rejectInvite = (groupId) => request(`/api/invites/${groupId}/reject`, { method: "POST" });
+
+// Admin — roles/levels and user management
+export const getAdminLevels = () => request("/api/admin/levels");
+export const createAdminLevel = (data) => request("/api/admin/levels", { method: "POST", body: JSON.stringify(data) });
+export const updateAdminLevel = (id, data) => request(`/api/admin/levels/${id}`, { method: "PUT", body: JSON.stringify(data) });
+export const deleteAdminLevel = (id) => request(`/api/admin/levels/${id}`, { method: "DELETE" });
+export const setDefaultLevel = (id) => request(`/api/admin/levels/${id}/set-default`, { method: "PUT" });
+export const getAdminUsers = (search = "") => request(`/api/admin/users?search=${encodeURIComponent(search)}`);
+export const updateUserLevel = (userId, levelId) =>
+  request(`/api/admin/users/${userId}/level`, { method: "PUT", body: JSON.stringify({ levelId }) });
+export const setUserStatus = (userId, enabled) =>
+  request(`/api/admin/users/${userId}/status`, { method: "PATCH", body: JSON.stringify({ enabled }) });
+export const impersonateUser = (userId) =>
+  request(`/api/admin/users/${userId}/impersonate`, { method: "POST" });
+export const stopImpersonating = () => request("/api/auth/stop-impersonating", { method: "POST" });
+
+export const getAdminGroups = (search = "") => request(`/api/admin/groups?search=${encodeURIComponent(search)}`);
+export const deleteAdminGroup = (groupId) => request(`/api/admin/groups/${groupId}`, { method: "DELETE" });
+
+export const getAdminCategories = () => request("/api/admin/categories");
+export const createAdminCategory = (title) => request("/api/admin/categories", { method: "POST", body: JSON.stringify({ title }) });
+export const updateAdminCategory = (id, title) => request(`/api/admin/categories/${id}`, { method: "PUT", body: JSON.stringify({ title }) });
+export const deleteAdminCategory = (id) => request(`/api/admin/categories/${id}`, { method: "DELETE" });
+
+export const getLoginLogs = (limit = 100) => request(`/api/admin/login-logs?limit=${limit}`);
+export const clearLoginLogs = () => request("/api/admin/login-logs", { method: "DELETE" });
+
+export const getAdminSettings = () => request("/api/admin/settings");
+export const setAdminSetting = (name, value) =>
+  request(`/api/admin/settings/${encodeURIComponent(name)}`, { method: "PUT", body: JSON.stringify({ value }) });
+export const deleteAdminSetting = (name) =>
+  request(`/api/admin/settings/${encodeURIComponent(name)}`, { method: "DELETE" });

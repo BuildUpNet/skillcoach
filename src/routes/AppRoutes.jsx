@@ -1,7 +1,14 @@
 import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import AppLayout from "../layouts/AppLayout";
 import GroupLayout from "../layouts/GroupLayout";
+import AdminLayout from "../layouts/AdminLayout";
 import RequireAuth from "../components/RequireAuth";
+import RequireAdmin from "../components/RequireAdmin";
+import AdminRoles from "../pages/admin/AdminRoles";
+import AdminUsers from "../pages/admin/AdminUsers";
+import AdminGroups from "../pages/admin/AdminGroups";
+// import AdminSettings from "../pages/admin/AdminSettings"; // temporarily disabled, no clear use case yet
+import AdminLogs from "../pages/admin/AdminLogs";
 import { useAuth } from "../lib/AuthContext";
 import Projects from "../pages/Projects";
 import SignIn from "../pages/SignIn";
@@ -16,6 +23,7 @@ import GroupInvite from "../pages/group/Invite";
 import GroupTimeline from "../pages/group/Timeline";
 import GroupLessons from "../pages/group/Lessons";
 import GroupTasks from "../pages/group/Tasks";
+import GroupManage from "../pages/group/Manage";
 import TaskDetail from "../pages/group/TaskDetail";
 import CreateGroup from "../pages/CreateGroup";
 import EditGroup from "../pages/EditGroup";
@@ -88,6 +96,7 @@ export default function AppRoutes() {
             <Route path="time-summary" element={<GroupTimeSummary />} />
             <Route path="members" element={<GroupMembers />} />
             <Route path="invite" element={<GroupInvite />} />
+            <Route path="manage" element={<GroupManage />} />
             <Route path="timeline" element={<GroupTimeline />} />
             <Route path="lessons" element={<GroupLessons />} />
             <Route path="tasks" element={<GroupTasks />} />
@@ -116,6 +125,17 @@ export default function AppRoutes() {
           <Route path="/change-password" element={<SettingsGeneral defaultTab="Change Password" />} />
           <Route path="/delete-account" element={<SettingsGeneral defaultTab="Delete Account" />} />
           <Route path="/group/:id/create-task" element={<GroupCreateTask />} />
+
+          <Route element={<RequireAdmin />}>
+            <Route path="/admin" element={<AdminLayout />}>
+              <Route index element={<Navigate to="/admin/roles" replace />} />
+              <Route path="roles" element={<AdminRoles />} />
+              <Route path="users" element={<AdminUsers />} />
+              <Route path="groups" element={<AdminGroups />} />
+              {/* <Route path="settings" element={<AdminSettings />} /> temporarily disabled, no clear use case yet */}
+              <Route path="logs" element={<AdminLogs />} />
+            </Route>
+          </Route>
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />

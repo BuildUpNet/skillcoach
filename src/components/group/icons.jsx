@@ -17,6 +17,7 @@ const PATHS = {
   search: "M17 10.5A6.5 6.5 0 114 10.5a6.5 6.5 0 0113 0zM21 21l-4.8-4.8",
   link: "M8 12l6-6a4 4 0 115.657 5.657l-2 2M16 12l-6 6a4 4 0 11-5.657-5.657l2-2",
   music: "M9 18V5l12-2v13M9 18a3 3 0 11-6 0 3 3 0 016 0zm12-2a3 3 0 11-6 0 3 3 0 016 0z",
+  shield: "M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6l8-4z",
 };
 
 export default function Icon({ name, className = "h-5 w-5", strokeWidth = 1.9 }) {

@@ -4,13 +4,15 @@ import cookieParser from 'cookie-parser'
 
 import { pool, hasMembershipDateColumn } from './db.js'
 import { authRouter } from './routes/auth.js'
-import { requireAuth } from './auth.js'
+import { requireAuth, requireAdmin } from './auth.js'
 import { tasksRouter } from './routes/tasks.js'
 import { membersRouter } from './routes/members.js'
 import { timeRouter } from './routes/time.js'
 import { asyncHandler, getDisplayNames, requireGroupMember } from './lib/groupUtils.js'
 import { sendGroupCreatedMail, sendInviteResponseMail } from './lib/mailer.js'
 import { notificationsRouter } from './routes/notifications.js'
+import { adminRouter } from './routes/admin.js'
+import { groupSettingsRouter } from './routes/groupSettings.js'
 const app = express()
 
 app.set('trust proxy', 1)
@@ -32,6 +34,7 @@ app.use(cookieParser())
 
 app.use('/api/auth', authRouter)
 app.use('/api/notifications', requireAuth, notificationsRouter)
+app.use('/api/admin', requireAuth, requireAdmin, adminRouter)
 const IMAGE_DATA_URL_RE = /^data:image\/(png|jpe?g|webp);base64,/
 const MAX_PHOTO_DATA_URL_LENGTH = 3_500_000 // ~2.5MB decoded
 
@@ -282,6 +285,7 @@ app.post('/api/invites/:groupId/reject', requireAuth, asyncHandler(async (req, r
 }))
 app.use('/api/groups/:groupId/tasks', requireAuth, requireGroupMember, tasksRouter)
 app.use('/api/groups/:groupId/members', requireAuth, requireGroupMember, membersRouter)
+app.use('/api/groups/:groupId/settings', requireAuth, requireGroupMember, groupSettingsRouter)
 app.use('/api/groups/:groupId', requireAuth, requireGroupMember, timeRouter)
 
 // Global error handler — must be registered last. Without this, a thrown/
