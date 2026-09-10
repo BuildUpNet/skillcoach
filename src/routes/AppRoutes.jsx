@@ -39,6 +39,9 @@ import Notifications from "../pages/Notifications";
 import MemberHome from "../pages/MemberHome";
 
 import GroupCreateTask from "../pages/adminpages/GroupCreateTask";
+import GroupEditDetails from "../pages/adminpages/GroupEditDetails";
+import GroupMessages from "../pages/adminpages/GroupMessages";
+import GroupInviteFriends from "../pages/adminpages/GroupInviteFriends";
 
 
 function SignInWrapper() {
@@ -116,6 +119,15 @@ export default function AppRoutes() {
           <Route path="/change-password" element={<SettingsGeneral defaultTab="Change Password" />} />
           <Route path="/delete-account" element={<SettingsGeneral defaultTab="Delete Account" />} />
           <Route path="/group/:id/create-task" element={<GroupCreateTask />} />
+          <Route path="/groups/edit/:id" element={<GroupEditDetails />} />
+
+          <Route path="/messages/inbox" element={<GroupMessages tab="inbox" />} />
+          <Route path="/messages/outbox" element={<GroupMessages tab="outbox" />} />
+          <Route path="/messages/outbox/page/:page" element={<GroupMessages tab="outbox" />} />
+          <Route path="/messages/compose" element={<GroupMessages tab="compose" />} />
+          <Route path="/messages/compose/to/:groupId/multi/group" element={<GroupMessages tab="compose" />} />
+          <Route path="/groups/invite/:id" element={<GroupInviteFriends />} />
+          
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />
