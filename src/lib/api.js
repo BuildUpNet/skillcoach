@@ -25,6 +25,8 @@ export const updateGroup = (id, data) =>
   request(`/api/groups/${id}`, { method: "PUT", body: JSON.stringify(data) });
 export const deleteGroup = (id) =>
   request(`/api/groups/${id}`, { method: "DELETE" });
+export const joinGroup = (id) =>
+  request(`/api/groups/${id}/join`, { method: "POST" });
 export const setGroupPhoto = (id, dataUrl) =>
   request(`/api/groups/${id}/photo`, { method: "PUT", body: JSON.stringify({ dataUrl }) });
 export const deleteGroupPhoto = (id) =>
@@ -68,6 +70,8 @@ export const getGroupMembers = (groupId) => request(`/api/groups/${groupId}/memb
 export const getGroupInvites = (groupId) => request(`/api/groups/${groupId}/members/invites`);
 export const inviteMember = (groupId, email) =>
   request(`/api/groups/${groupId}/members/invite`, { method: "POST", body: JSON.stringify({ email }) });
+export const inviteMemberById = (groupId, userId) =>
+  request(`/api/groups/${groupId}/members/invite-user`, { method: "POST", body: JSON.stringify({ userId }) });
 export const removeMember = (groupId, userId) =>
   request(`/api/groups/${groupId}/members/${userId}`, { method: "DELETE" });
 export const cancelInvite = (groupId, userId) =>
@@ -80,6 +84,10 @@ export const demoteOfficer = (groupId, userId) =>
   request(`/api/groups/${groupId}/settings/officers/${userId}`, { method: "DELETE" });
 export const setGroupPrivacy = (groupId, action, minRole) =>
   request(`/api/groups/${groupId}/settings/privacy/${action}`, { method: "PUT", body: JSON.stringify({ minRole }) });
+
+export const getGroupStyle = (groupId) => request(`/api/groups/${groupId}/style`);
+export const setGroupStyle = (groupId, style) =>
+  request(`/api/groups/${groupId}/style`, { method: "PUT", body: JSON.stringify({ style }) });
 
 export const getMyTimesheet = (groupId) => request(`/api/groups/${groupId}/timesheet`);
 export const getTimeSummary = (groupId) => request(`/api/groups/${groupId}/time-summary`);

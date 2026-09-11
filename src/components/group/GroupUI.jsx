@@ -13,8 +13,11 @@ export function Card({ title, action, children, className = "" }) {
 }
 
 const PRIORITY_STYLES = {
+  Lowest: "bg-mist text-ink/60",
+  Low: "bg-forest-soft text-forest",
+  Normal: "bg-sky-50 text-sky-800",
+  High: "bg-gold-soft text-gold-deep",
   Highest: "bg-crimson/10 text-crimson",
-  Normal: "bg-forest-soft text-forest",
 };
 
 const STATUS_STYLES = {

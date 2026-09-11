@@ -53,22 +53,12 @@ membersRouter.get('/invites', asyncHandler(async (req, res) => {
   )
   res.json(rows.map((r) => ({ id: r.user_id, email: r.email, sentDate: formatDate(r.sent_date) })))
 }))
-membersRouter.post('/invite', asyncHandler(async (req, res) => {
+// Shared by both /invite (by email) and /invite-user (by picking an existing
+// friend from a list) — same privacy check, duplicate-membership check, and
+// membership-row insert either way, they just differ in how the target user
+// is looked up.
+async function inviteUserToGroup(req, res, user) {
   const { groupId } = req.params
-  const { email } = req.body || {}
-  if (!email?.trim()) return res.status(400).json({ error: 'Email is required' })
-
-  const [[group]] = await pool.query('SELECT user_id FROM engine4_group_groups WHERE group_id = ?', [groupId])
-  if (!group) return res.status(404).json({ error: 'Group not found' })
-  const role = await getGroupRole(groupId, req.userId, group.user_id)
-  if (!(await isAllowedByPrivacy(groupId, 'invite', role))) {
-    return res.status(403).json({ error: "This group's privacy settings don't allow you to send invites" })
-  }
-
-  const [[user]] = await pool.query(
-    'SELECT user_id, email, displayname FROM engine4_users WHERE email = ? LIMIT 1',
-    [email.trim().toLowerCase()],
-  )
   if (!user) return res.status(404).json({ error: 'No SkillCoach account uses that email' })
 
   const [[existing]] = await pool.query(
@@ -76,7 +66,7 @@ membersRouter.post('/invite', asyncHandler(async (req, res) => {
     [groupId, user.user_id],
   )
   if (existing?.active) return res.status(409).json({ error: 'That person is already a member' })
-  if (existing) return res.status(409).json({ error: 'An invite is already pending for that email' })
+  if (existing) return res.status(409).json({ error: 'An invite is already pending for that person' })
 
   // invite = row exists, group approved it, user hasn't accepted yet
   await pool.query(
@@ -95,6 +85,47 @@ membersRouter.post('/invite', asyncHandler(async (req, res) => {
   }
 
   res.status(201).json({ id: user.user_id, email: user.email, name: user.displayname, sentDate: formatDate(new Date()) })
+}
+
+async function checkInvitePrivacy(req, res) {
+  const { groupId } = req.params
+  const [[group]] = await pool.query('SELECT user_id FROM engine4_group_groups WHERE group_id = ?', [groupId])
+  if (!group) {
+    res.status(404).json({ error: 'Group not found' })
+    return false
+  }
+  const role = await getGroupRole(groupId, req.userId, group.user_id)
+  if (!(await isAllowedByPrivacy(groupId, 'invite', role))) {
+    res.status(403).json({ error: "This group's privacy settings don't allow you to send invites" })
+    return false
+  }
+  return true
+}
+
+membersRouter.post('/invite', asyncHandler(async (req, res) => {
+  const { email } = req.body || {}
+  if (!email?.trim()) return res.status(400).json({ error: 'Email is required' })
+  if (!(await checkInvitePrivacy(req, res))) return
+
+  const [[user]] = await pool.query(
+    'SELECT user_id, email, displayname FROM engine4_users WHERE email = ? LIMIT 1',
+    [email.trim().toLowerCase()],
+  )
+  await inviteUserToGroup(req, res, user)
+}))
+
+// Invite by picking an existing friend from a list (Invite Friends → Invite
+// Members section) rather than typing an email.
+membersRouter.post('/invite-user', asyncHandler(async (req, res) => {
+  const { userId } = req.body || {}
+  if (!userId) return res.status(400).json({ error: 'userId is required' })
+  if (!(await checkInvitePrivacy(req, res))) return
+
+  const [[user]] = await pool.query(
+    'SELECT user_id, email, displayname FROM engine4_users WHERE user_id = ? LIMIT 1',
+    [userId],
+  )
+  await inviteUserToGroup(req, res, user)
 }))
 
 // Remove an existing active member. Legacy had zero server-side check on

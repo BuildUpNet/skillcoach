@@ -66,8 +66,11 @@ authRouter.post('/register', registerLimiter, async (req, res) => {
   const [rows] = await pool.query('SELECT * FROM engine4_users WHERE user_id = ?', [result.insertId])
   const user = rows[0]
 
-  await award(user.user_id, 'signup')
-await award(user.user_id, 'signup')
+  try {
+    await award(user.user_id, 'signup')
+  } catch (err) {
+    console.error('signup award failed:', err.message)
+  }
   const token = signSession(user)
   setSessionCookie(res, token)
   res.status(201).json({ user: await publicUser(user) })
@@ -200,7 +203,11 @@ authRouter.post('/login', loginLimiter, async (req, res) => {
   setSessionCookie(res, token)
 
   console.log('LOGIN: sending response')
-await award(user.user_id, 'user_login');
+  try {
+    await award(user.user_id, 'user_login')
+  } catch (err) {
+    console.error('login award failed:', err.message)
+  }
   return res.json({
     user: await publicUser(user),
   })

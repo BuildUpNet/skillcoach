@@ -174,8 +174,12 @@ app.post('/api/groups', requireAuth, asyncHandler(async (req, res) => {
   }
 
   const [rows] = await pool.query('SELECT * FROM engine4_group_groups WHERE group_id = ?', [result.insertId])
-    // credits for creating a group — never fail the create if this fails
-  await award(req.userId, 'group_create', { objectType: 'group', objectId: result.insertId })
+  // credits for creating a group — never fail the create if this fails
+  try {
+    await award(req.userId, 'group_create', { objectType: 'group', objectId: result.insertId })
+  } catch (err) {
+    console.error('group-create award failed:', err.message)
+  }
   // email the creator — never fail the create if mail fails
   try {
     const [[owner]] = await pool.query(
@@ -198,7 +202,7 @@ app.post('/api/groups', requireAuth, asyncHandler(async (req, res) => {
 }))
 
 app.put('/api/groups/:id', requireAuth, asyncHandler(async (req, res) => {
-  const { title, description, category_id, search, invite, approval, summary_emails } = req.body
+  const { title, description, category_id, sub_category_id, search, invite, approval, summary_emails, lessons } = req.body
   if (!title?.trim()) return res.status(400).json({ error: 'title is required' })
   if (!description?.trim()) return res.status(400).json({ error: 'description is required' })
 
@@ -208,17 +212,19 @@ app.put('/api/groups/:id', requireAuth, asyncHandler(async (req, res) => {
 
   const [result] = await pool.query(
     `UPDATE engine4_group_groups
-     SET title = ?, description = ?, category_id = ?, search = ?, invite = ?,
-         approval = ?, summary_emails = ?, modified_date = NOW()
+     SET title = ?, description = ?, category_id = ?, sub_category_id = ?, search = ?, invite = ?,
+         approval = ?, summary_emails = ?, lessons = ?, modified_date = NOW()
      WHERE group_id = ?`,
     [
       title.trim(),
       description.trim(),
       category_id || 0,
+      sub_category_id || 0,
       search ? 1 : 0,
       invite ? 1 : 0,
       approval ? 1 : 0,
       summary_emails ? 1 : 0,
+      lessons ?? null,
       req.params.id,
     ],
   )
@@ -226,6 +232,74 @@ app.put('/api/groups/:id', requireAuth, asyncHandler(async (req, res) => {
 
   const [rows] = await pool.query('SELECT * FROM engine4_group_groups WHERE group_id = ?', [req.params.id])
   res.json(rows[0])
+}))
+
+// Self-join a public group from Browse Groups — mirrors legacy's
+// Group_MemberController::joinAction() for the "approve immediately" case
+// only. Groups with `approval = 1` need an owner-approval queue that
+// doesn't exist in this rebuild yet (no request-to-join list/approve UI),
+// so those are refused here rather than silently creating an invisible,
+// unapprovable pending row.
+app.post('/api/groups/:id/join', requireAuth, asyncHandler(async (req, res) => {
+  const [[group]] = await pool.query('SELECT group_id, approval FROM engine4_group_groups WHERE group_id = ?', [req.params.id])
+  if (!group) return res.status(404).json({ error: 'Group not found' })
+
+  const [[existing]] = await pool.query(
+    'SELECT active FROM engine4_group_membership WHERE resource_id = ? AND user_id = ? LIMIT 1',
+    [req.params.id, req.userId],
+  )
+  if (existing?.active) return res.status(409).json({ error: 'You are already a member of this group' })
+  if (group.approval) {
+    return res.status(400).json({ error: 'This group requires the owner to approve new members — that request flow is not available yet' })
+  }
+
+  if (existing) {
+    await pool.query(
+      'UPDATE engine4_group_membership SET active = 1, resource_approved = 1, user_approved = 1 WHERE resource_id = ? AND user_id = ?',
+      [req.params.id, req.userId],
+    )
+  } else {
+    await pool.query(
+      hasMembershipDateColumn
+        ? `INSERT INTO engine4_group_membership (resource_id, user_id, active, resource_approved, user_approved, created_date) VALUES (?, ?, 1, 1, 1, NOW())`
+        : `INSERT INTO engine4_group_membership (resource_id, user_id, active, resource_approved, user_approved) VALUES (?, ?, 1, 1, 1)`,
+      [req.params.id, req.userId],
+    )
+  }
+  await pool.query('UPDATE engine4_group_groups SET member_count = member_count + 1 WHERE group_id = ?', [req.params.id])
+  try {
+    await award(req.userId, 'group_join', { objectType: 'group', objectId: Number(req.params.id) })
+  } catch (err) {
+    console.error('group-join award failed:', err.message)
+  }
+
+  const [rows] = await pool.query('SELECT * FROM engine4_group_groups WHERE group_id = ?', [req.params.id])
+  res.status(201).json(rows[0])
+}))
+
+// Group custom CSS ("Edit Group Style" in the legacy app) — stored in the
+// generic engine4_core_styles table (type='group', id=group_id), same table
+// legacy uses, so this stays schema-compatible if ever pointed at live.
+app.get('/api/groups/:groupId/style', requireAuth, requireGroupMember, asyncHandler(async (req, res) => {
+  const [[row]] = await pool.query(
+    "SELECT style FROM engine4_core_styles WHERE type = 'group' AND id = ? LIMIT 1",
+    [req.params.groupId],
+  )
+  res.json({ style: row?.style || '' })
+}))
+
+app.put('/api/groups/:groupId/style', requireAuth, requireGroupMember, asyncHandler(async (req, res) => {
+  const [existing] = await pool.query('SELECT user_id FROM engine4_group_groups WHERE group_id = ?', [req.params.groupId])
+  if (!existing.length) return res.status(404).json({ error: 'Group not found' })
+  if (existing[0].user_id !== Number(req.userId)) return res.status(403).json({ error: 'Only the group owner can change this' })
+
+  const style = String((req.body || {}).style ?? '')
+  await pool.query(
+    `INSERT INTO engine4_core_styles (type, id, style) VALUES ('group', ?, ?)
+     ON DUPLICATE KEY UPDATE style = VALUES(style)`,
+    [req.params.groupId, style],
+  )
+  res.status(204).end()
 }))
 
 app.delete('/api/groups/:id', requireAuth, asyncHandler(async (req, res) => {
@@ -286,7 +360,11 @@ app.post('/api/invites/:groupId/accept', requireAuth, asyncHandler(async (req, r
   )
   if (!result.affectedRows) return res.status(404).json({ error: 'Invite not found' })
   await pool.query('UPDATE engine4_group_groups SET member_count = member_count + 1 WHERE group_id = ?', [req.params.groupId])
-  await award(req.userId, 'group_join', { objectType: 'group', objectId: Number(req.params.groupId) })
+  try {
+    await award(req.userId, 'group_join', { objectType: 'group', objectId: Number(req.params.groupId) })
+  } catch (err) {
+    console.error('group-join award failed:', err.message)
+  }
   const [[group]] = await pool.query('SELECT * FROM engine4_group_groups WHERE group_id = ?', [req.params.groupId])
     try {
     const [[me]] = await pool.query('SELECT displayname FROM engine4_users WHERE user_id = ?', [req.userId])

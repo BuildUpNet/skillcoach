@@ -1,34 +1,11 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { getGroups, getCategories, joinGroup } from "../lib/api";
+import { useAuth } from "../lib/AuthContext";
 
-const CATEGORIES = [
-  "Arts & Culture", "Business", "Entertainment", "Family & Home", "Health & Wellness", "Sports", "Technology", "Other",
-  "Mathematics", "Design", "Engineering", "Languages", "Economics & Social Science", "Economics", "Science", "Investing", "Law",
-];
 const VIEWS = ["Everyone's Groups", "My Groups", "Groups I Lead"];
 const SORTS = ["Recently Created", "Most Members", "Alphabetical"];
 const PER_PAGE = 6;
-
-// demo data — replace with API response
-const GROUPS = [
-  { id: 1, name: "Online Discussion Group", leader: "Robert james127", members: 1, category: "Health & Wellness", created: "2026-08-30", mine: false, image: null,
-    description: "Managing Business Change in Healthcare: A Guide for Nursing Professionals. Healthcare organizations operate in an environment of constant change. New technologies, evolving patient expectations, workforce challenges, regulatory requirements, and changing care models mean nurses must adapt constantly." },
-  { id: 2, name: "echten", leader: "cachorro", members: 1, category: "Other", created: "2026-08-28", mine: false, image: null,
-    description: "Een echt rijbewijs, geregistreerd op onze website, zonder dat een examen of praktijktest nodig is. We hebben alleen uw gegevens nodig en deze worden binnen acht dagen in ons systeem geregistreerd." },
-  { id: 3, name: "Apply for Turkey Visa Your Complete Online Application Guide", leader: "Valena Drixell", members: 1, category: "Law", created: "2026-08-25", mine: false, image: null,
-    description: "Getting my Turkey visa online was far easier than I expected. The whole process took about ten minutes from start to finish. You simply fill in your personal details, passport information, and travel dates, then upload a clear scan of your passport bio page." },
-  { id: 4, name: "The Wiki Creators", leader: "Hudson Chris", members: 1, category: "Business", created: "2026-08-20", mine: false, image: "/groups/wiki.png",
-    description: "Welcome to The Wiki Creators community — a place for businesses, entrepreneurs, authors, executives, and public figures who want to learn more about building a credible presence on Wikipedia. This group is dedicated to sharing valuable insights, practical tips and real experiences." },
-  { id: 5, name: "reports", leader: "miasreports", members: 1, category: "Economics", created: "2026-08-18", mine: false, image: null, description: "research reports" },
-  { id: 6, name: "STD work", leader: "Thomas Kee", members: 10, category: "Investing", created: "2026-07-01", mine: true, image: "/groups/std.png", description: "Work on Stock Traders Daily" },
-  { id: 7, name: "fiwfan", leader: "fiwfan", members: 1, category: "Entertainment", created: "2026-08-10", mine: false, image: null,
-    description: "Travel and modern life have changed the way people meet and connect. Today, many people are looking for more than just entertainment or sightseeing. They want real conversations, trusted friendships, and meaningful experiences." },
-  { id: 8, name: "Decor", leader: "Cherishx decor", members: 1, category: "Design", created: "2026-08-08", mine: false, image: null, description: "" },
-  { id: 9, name: "Book Illustration", leader: "Steven Hawk", members: 1, category: "Arts & Culture", created: "2026-08-05", mine: false, image: null,
-    description: "Book Illustration is at the top of the list for those looking for a skilled illustrator in England. We have a team of very creative professionals which we put to work on your children's books, eBooks, comics, educational materials, and custom story telling." },
-  { id: 10, name: "wordle unlimited", leader: "reduce drosella", members: 1, category: "Entertainment", created: "2026-08-01", mine: false, image: null,
-    description: "While it's not literally a store management game, the mental skills it hones — resource allocation, strategic thinking, and adaptation — are surprisingly similar to those required to run a successful shop. And it's addictive fun to boot." },
-];
 
 const TABS = [
   { key: "browse", label: "Browse groups", to: "/groups" },
@@ -54,15 +31,28 @@ function Avatar({ group }) {
   if (group.image) return <img src={group.image} alt="" className="h-20 w-20 flex-none rounded-2xl object-cover ring-1 ring-line" />;
   return (
     <div className="grid h-20 w-20 flex-none place-items-center rounded-2xl bg-forest-soft text-[26px] font-extrabold text-forest ring-1 ring-line">
-      {group.name.trim()[0].toUpperCase()}
+      {(group.name || "?").trim()[0]?.toUpperCase() || "?"}
     </div>
   );
 }
 
-function GroupRow({ group }) {
+function GroupRow({ group, onJoin }) {
   const [open, setOpen] = useState(false);
+  const [joining, setJoining] = useState(false);
   const long = group.description.length > 180;
   const text = open || !long ? group.description : group.description.slice(0, 180).trimEnd() + "…";
+
+  const handleJoin = async () => {
+    if (group.mine || group.approvalRequired) return;
+    setJoining(true);
+    try {
+      await onJoin(group.id);
+    } catch (err) {
+      alert(err.message || "Could not join this group");
+    } finally {
+      setJoining(false);
+    }
+  };
 
   return (
     <li className="group flex gap-5 p-5 transition-colors hover:bg-forest-soft/40 sm:p-6">
@@ -70,7 +60,7 @@ function GroupRow({ group }) {
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
-            <Link to={`/groups/${group.id}`} className="block text-[20px] font-extrabold leading-tight tracking-tight text-ink hover:text-forest">
+            <Link to={`/projects/${group.id}`} className="block text-[20px] font-extrabold leading-tight tracking-tight text-ink hover:text-forest">
               {group.name}
             </Link>
             <p className="mt-1 text-[14px] text-ink/55">
@@ -79,8 +69,15 @@ function GroupRow({ group }) {
           </div>
           <div className="flex flex-none items-center gap-2">
             <span className="rounded-full bg-gold-soft px-2.5 py-1 text-[12.5px] font-bold text-gold-deep">{group.category}</span>
-            <button className={`rounded-lg px-3.5 py-2 text-[14px] font-bold transition-colors ${group.mine ? "bg-mist text-ink/60" : "bg-forest text-white hover:bg-forest-deep"}`}>
-              {group.mine ? "Joined" : "Join"}
+            <button
+              onClick={handleJoin}
+              disabled={group.mine || joining || group.approvalRequired}
+              title={group.approvalRequired ? "This group requires owner approval to join" : undefined}
+              className={`rounded-lg px-3.5 py-2 text-[14px] font-bold transition-colors disabled:cursor-not-allowed ${
+                group.mine ? "bg-mist text-ink/60" : group.approvalRequired ? "bg-mist text-ink/40" : "bg-forest text-white hover:bg-forest-deep disabled:opacity-60"
+              }`}
+            >
+              {group.mine ? "Joined" : joining ? "Joining…" : group.approvalRequired ? "Approval required" : "Join"}
             </button>
           </div>
         </div>
@@ -99,28 +96,91 @@ function GroupRow({ group }) {
 
 export default function BrowseGroups() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const [rawGroups, setRawGroups] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+
   const [q, setQ] = useState("");
   const [category, setCategory] = useState("All Categories");
   const [view, setView] = useState(VIEWS[0]);
   const [sort, setSort] = useState(SORTS[0]);
   const [page, setPage] = useState(1);
 
+  useEffect(() => {
+    let cancelled = false;
+    Promise.all([getGroups(), getCategories()])
+      .then(([groups, cats]) => {
+        if (cancelled) return;
+        setRawGroups(groups);
+        setCategories(cats);
+      })
+      .catch((err) => !cancelled && setLoadError(err.message || "Could not load groups"))
+      .finally(() => !cancelled && setLoading(false));
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const groups = useMemo(
+    () =>
+      rawGroups.map((g) => ({
+        id: g.group_id,
+        name: g.title,
+        leader: g.owner_displayname || "Unknown",
+        isLeader: user && g.user_id === user.user_id,
+        members: g.member_count,
+        category: g.category_title || "Uncategorized",
+        created: g.creation_date,
+        mine: !!g.is_member,
+        approvalRequired: !!g.approval,
+        image: g.photo_data_url,
+        description: g.description || "",
+      })),
+    [rawGroups, user],
+  );
+
   const results = useMemo(() => {
-    let list = GROUPS.filter((g) =>
-      (g.name + " " + g.description).toLowerCase().includes(q.toLowerCase()) &&
-      (category === "All Categories" || g.category === category) &&
-      (view === "Everyone's Groups" || (view === "My Groups" && g.mine) || (view === "Groups I Lead" && g.leader === "You"))
+    let list = groups.filter(
+      (g) =>
+        (g.name + " " + g.description).toLowerCase().includes(q.toLowerCase()) &&
+        (category === "All Categories" || g.category === category) &&
+        (view === "Everyone's Groups" || (view === "My Groups" && g.mine) || (view === "Groups I Lead" && g.isLeader)),
     );
     if (sort === "Recently Created") list = [...list].sort((a, b) => b.created.localeCompare(a.created));
     if (sort === "Most Members") list = [...list].sort((a, b) => b.members - a.members);
     if (sort === "Alphabetical") list = [...list].sort((a, b) => a.name.localeCompare(b.name));
     return list;
-  }, [q, category, view, sort]);
+  }, [groups, q, category, view, sort]);
 
   const pages = Math.max(1, Math.ceil(results.length / PER_PAGE));
   const current = Math.min(page, pages);
   const slice = results.slice((current - 1) * PER_PAGE, current * PER_PAGE);
   const reset = (setter) => (v) => { setter(v); setPage(1); };
+
+  const handleJoin = async (groupId) => {
+    await joinGroup(groupId);
+    setRawGroups((rows) =>
+      rows.map((r) => (r.group_id === groupId ? { ...r, is_member: true, member_count: r.member_count + 1 } : r)),
+    );
+  };
+
+  if (loading) {
+    return (
+      <div className="mx-auto grid max-w-[1200px] min-h-[50vh] place-items-center px-4">
+        <p className="text-ink/50">Loading groups…</p>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="mx-auto grid max-w-[1200px] min-h-[50vh] place-items-center px-4 text-center">
+        <p className="text-[16px] font-semibold text-ink">{loadError}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-[1200px] px-4 pt-6">
@@ -136,7 +196,7 @@ export default function BrowseGroups() {
             </h1>
           </div>
           <div className="rounded-2xl bg-white/10 px-5 py-4 ring-1 ring-white/15 backdrop-blur">
-            <div className="text-[32px] font-extrabold leading-none text-gold">{GROUPS.length}</div>
+            <div className="text-[32px] font-extrabold leading-none text-gold">{groups.length}</div>
             <div className="mt-1 text-[14px] text-white/70">groups to explore</div>
           </div>
         </div>
@@ -165,7 +225,7 @@ export default function BrowseGroups() {
         <Field label="Category">
           <select value={category} onChange={(e) => reset(setCategory)(e.target.value)} className={select}>
             <option>All Categories</option>
-            {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
+            {categories.map((c) => <option key={c.category_id}>{c.title}</option>)}
           </select>
         </Field>
         <Field label="View">
@@ -193,7 +253,7 @@ export default function BrowseGroups() {
 
       <section className="mt-3 overflow-hidden rounded-3xl bg-white ring-1 ring-line">
         {slice.length ? (
-          <ul className="divide-y divide-line">{slice.map((g) => <GroupRow key={g.id} group={g} />)}</ul>
+          <ul className="divide-y divide-line">{slice.map((g) => <GroupRow key={g.id} group={g} onJoin={handleJoin} />)}</ul>
         ) : (
           <div className="px-6 py-16 text-center">
             <p className="text-[20px] font-extrabold">No groups found</p>
