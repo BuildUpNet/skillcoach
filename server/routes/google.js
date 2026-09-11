@@ -8,25 +8,23 @@ export const googleRouter = express.Router();
 const isProd = process.env.NODE_ENV === "production";
 const API_URL = process.env.API_URL || (isProd ? null : `http://localhost:${process.env.PORT || 4000}`);
 const FRONTEND_URL = process.env.FRONTEND_URL || process.env.APP_URL || (isProd ? null : "http://localhost:5173");
+const CALLBACK = () => `${API_URL}/api/auth/google/callback`;
 
 const fail = (res, msg) => {
   if (!FRONTEND_URL) return res.status(500).json({ error: `Config error: ${msg}` });
   res.redirect(`${FRONTEND_URL}/?error=${encodeURIComponent(msg)}`);
 };
 
-const CALLBACK = () => `${API_URL}/api/auth/google/callback`;
-
-const fail = (res, msg) =>
-  res.redirect(`${FRONTEND_URL}/?error=${encodeURIComponent(msg)}`);
-
 googleRouter.get("/google", (req, res) => {
   if (!process.env.GOOGLE_CLIENT_ID)
     return fail(res, "GOOGLE_CLIENT_ID missing in env");
+  if (!API_URL)
+    return fail(res, "API_URL missing in env");
 
   const state = crypto.randomBytes(16).toString("hex");
   res.cookie("g_state", state, {
     httpOnly: true,
-    sameSite: "lax",
+    sameSite: isProd ? "none" : "lax",
     secure: isProd,
     maxAge: 10 * 60 * 1000,
     path: "/",
@@ -82,7 +80,7 @@ googleRouter.get("/google/callback", async (req, res) => {
     });
 
     // same session cookie (sc_session) as the email login
-    setSessionCompat(res, user);
+    setSessionCookie(res, signSession(user));
 
     res.redirect(`${FRONTEND_URL}/home`);
   } catch (e) {
@@ -90,7 +88,3 @@ googleRouter.get("/google/callback", async (req, res) => {
     fail(res, e.message || "Google sign-in failed");
   }
 });
-
-function setSessionCompat(res, user) {
-  setSessionCookie(res, signSession(user));
-}
