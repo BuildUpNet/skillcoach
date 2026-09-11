@@ -13,7 +13,7 @@ const fail = (res, msg) => {
   if (!FRONTEND_URL) return res.status(500).json({ error: `Config error: ${msg}` });
   res.redirect(`${FRONTEND_URL}/?error=${encodeURIComponent(msg)}`);
 };
-const isProd = process.env.NODE_ENV === "production";
+
 const CALLBACK = () => `${API_URL}/api/auth/google/callback`;
 
 const fail = (res, msg) =>
