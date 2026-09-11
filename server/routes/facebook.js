@@ -9,25 +9,23 @@ const FB_VERSION = "v21.0";
 const isProd = process.env.NODE_ENV === "production";
 const API_URL = process.env.API_URL || (isProd ? null : `http://localhost:${process.env.PORT || 4000}`);
 const FRONTEND_URL = process.env.FRONTEND_URL || process.env.APP_URL || (isProd ? null : "http://localhost:5173");
+const CALLBACK = () => `${API_URL}/api/auth/facebook/callback`;
 
 const fail = (res, msg) => {
   if (!FRONTEND_URL) return res.status(500).json({ error: `Config error: ${msg}` });
   res.redirect(`${FRONTEND_URL}/?error=${encodeURIComponent(msg)}`);
 };
 
-const CALLBACK = () => `${API_URL}/api/auth/facebook/callback`;
-
-const fail = (res, msg) =>
-  res.redirect(`${FRONTEND_URL}/?error=${encodeURIComponent(msg)}`);
-
 facebookRouter.get("/facebook/start", (req, res) => {
   if (!process.env.FACEBOOK_APP_ID)
     return fail(res, "FACEBOOK_APP_ID missing in env");
+  if (!API_URL)
+    return fail(res, "API_URL missing in env");
 
   const state = crypto.randomBytes(16).toString("hex");
   res.cookie("fb_state", state, {
     httpOnly: true,
-    sameSite: "lax",
+    sameSite: isProd ? "none" : "lax",
     secure: isProd,
     maxAge: 10 * 60 * 1000,
     path: "/",
@@ -91,6 +89,4 @@ facebookRouter.get("/facebook/callback", async (req, res) => {
     res.redirect(`${FRONTEND_URL}/home`);
   } catch (e) {
     console.error("facebook callback:", e);
-    fail(res, e.message || "Facebook sign-in failed");
-  }
-});
+    fail(res, e.message || "Facebook sign-in
