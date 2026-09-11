@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import express from 'express'
 import cors from 'cors'
 import cookieParser from 'cookie-parser'
@@ -24,6 +25,7 @@ import { googleRouter } from "./routes/google.js";
 import { facebookRouter } from "./routes/facebook.js";
 import { passwordResetRouter } from "./routes/passwordReset.js";
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
+
 const app = express()
 
 app.set('trust proxy', 1)

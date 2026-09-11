@@ -50,8 +50,13 @@ import GroupCreateTask from "../pages/adminpages/GroupCreateTask";
 import GroupEditDetails from "../pages/adminpages/GroupEditDetails";
 import GroupMessages from "../pages/adminpages/GroupMessages";
 import GroupInviteFriends from "../pages/adminpages/GroupInviteFriends";
+import GroupAssigned from "../pages/adminpages/GroupAssigned";
+import GroupReadyToAccept from "../pages/adminpages/GroupReadyToAccept";
+import GroupTimeSummaryReport from "../pages/adminpages/GroupTimeSummaryReport";
+import GroupAccepted from "../pages/adminpages/GroupAccepted";
 import ForgotPassword from "../pages/ForgotPassword";
 import ResetPassword from "../pages/ResetPassword";
+
 
 function SignInWrapper() {
   const navigate = useNavigate();
@@ -163,7 +168,10 @@ export default function AppRoutes() {
           <Route path="/messages/outbox" element={<GroupMessages tab="outbox" />} />
           <Route path="/messages/outbox/page/:page" element={<GroupMessages tab="outbox" />} />
           <Route path="/messages/compose" element={<GroupMessages tab="compose" />} />
-          <Route path="/messages/compose/to/:groupId/multi/group" element={<GroupMessages tab="compose" />} />
+          <Route path="/group/:id/assigned" element={<GroupAssigned />} />
+          <Route path="/group/:id/ready-to-accept" element={<GroupReadyToAccept />} />
+          <Route path="/group/:id/time-summary" element={<GroupTimeSummaryReport />} />
+          <Route path="/group/:id/accepted" element={<GroupAccepted />} />
         </Route>
 
         {/* admin */}
@@ -182,4 +190,4 @@ export default function AppRoutes() {
       </Route>
     </Routes>
   );
-}
+}

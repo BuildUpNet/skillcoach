@@ -14,6 +14,8 @@ dist-ssr
 
 server/.env
 server/server.log
+server/server.log.txt
+*.log.txt
 
 # Editor directories and files
 .vscode/*
