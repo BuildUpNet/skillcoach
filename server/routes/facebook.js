@@ -6,8 +6,14 @@ import { signSession, setSessionCookie } from "../auth.js";
 export const facebookRouter = express.Router();
 
 const FB_VERSION = "v21.0";
-const API_URL = process.env.API_URL || `http://localhost:${process.env.PORT || 4000}`;
-const FRONTEND_URL = process.env.FRONTEND_URL || process.env.APP_URL || "http://localhost:5173";
+const isProd = process.env.NODE_ENV === "production";
+const API_URL = process.env.API_URL || (isProd ? null : `http://localhost:${process.env.PORT || 4000}`);
+const FRONTEND_URL = process.env.FRONTEND_URL || process.env.APP_URL || (isProd ? null : "http://localhost:5173");
+
+const fail = (res, msg) => {
+  if (!FRONTEND_URL) return res.status(500).json({ error: `Config error: ${msg}` });
+  res.redirect(`${FRONTEND_URL}/?error=${encodeURIComponent(msg)}`);
+};
 const isProd = process.env.NODE_ENV === "production";
 const CALLBACK = () => `${API_URL}/api/auth/facebook/callback`;
 
