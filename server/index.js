@@ -77,7 +77,15 @@ app.get('/api/health', asyncHandler(async (req, res) => {
   const [rows] = await pool.query('SELECT 1 AS ok')
   res.json({ status: 'ok', db: rows[0].ok === 1 })
 }))
-
+app.get('/api/envcheck', (req, res) => {
+  res.json({
+    GOOGLE_CLIENT_ID: !!process.env.GOOGLE_CLIENT_ID,
+    GOOGLE_CLIENT_SECRET: !!process.env.GOOGLE_CLIENT_SECRET,
+    API_URL: process.env.API_URL || null,
+    FRONTEND_URL: process.env.FRONTEND_URL || null,
+    JWT_SECRET: !!process.env.JWT_SECRET,
+  })
+})
 app.get('/api/categories', asyncHandler(async (req, res) => {
   const [rows] = await pool.query(
     'SELECT category_id, title FROM engine4_group_categories ORDER BY title',
