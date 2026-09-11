@@ -87,6 +87,8 @@ facebookRouter.get("/facebook/callback", async (req, res) => {
 
     setSessionCookie(res, signSession(user));
     res.redirect(`${FRONTEND_URL}/home`);
-  } catch (e) {
+  }  catch (e) {
     console.error("facebook callback:", e);
-    fail(res, e.message || "Facebook sign-in
+    fail(res, e.message || "Facebook sign-in failed");
+  }
+});
