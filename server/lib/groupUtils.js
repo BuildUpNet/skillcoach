@@ -25,14 +25,15 @@ export async function getDisplayNames(userIds) {
   return new Map(rows.map((r) => [r.user_id, r.displayname]))
 }
 
-// Only "Highest" and "Normal" are styled in the UI today (GroupUI.jsx);
-// anything else falls back to a generic badge style.
-export const PRIORITY_TO_INT = { Highest: 1, Normal: 3 }
+// Matches the legacy Group_TaskController's real 5-level priority_type enum
+// (Lowest=1 .. Highest=5) — confirmed against the legacy PHP source.
+export const PRIORITY_TO_INT = { Lowest: 1, Low: 2, Normal: 3, High: 4, Highest: 5 }
+const INT_TO_PRIORITY = { 1: 'Lowest', 2: 'Low', 3: 'Normal', 4: 'High', 5: 'Highest' }
 export function priorityToInt(label) {
   return PRIORITY_TO_INT[label] ?? 3
 }
 export function priorityToLabel(value) {
-  return value === 1 ? 'Highest' : 'Normal'
+  return INT_TO_PRIORITY[value] || 'Normal'
 }
 
 // Blocks access to a group's internal workspace (tasks/members/timesheet/

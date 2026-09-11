@@ -2,8 +2,18 @@
 // Redesign of legacy skillcoach.org/groups/edit/:id/ref/profile  ("Edit Group").
 // Same tokens as MemberHome / GroupCreateTask: #19352d → #122721 green, #d99b26 amber, mist #f4f6f3, Manrope.
 // Deps: react-router-dom, lucide-react.  Rendered inside AppLayout (navbar + footer already there).
+//
+// Wired to the real backend: group fetch/update, real categories, real photo
+// upload, and real per-group privacy dials (reusing the same
+// engine4_group_privacy system built for the Manage Group page). "Sub
+// Category" is a real column (sub_category_id) but there's no separate
+// subcategory table in the schema, so it reuses the same flat categories
+// list. Lessons round-trip through the real `lessons` column (same
+// bracket-string format the legacy PHP itself used), but the list of
+// lesson names to pick from stays static — there's no Lessons/Video module
+// built in this rebuild yet to source real lesson titles from.
 
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import {
   ChevronDown,
@@ -16,44 +26,14 @@ import {
   MessageSquare,
   Camera,
   CalendarPlus,
-  Mail,
   BookOpen,
-  Info,
+  Loader2,
 } from "lucide-react";
+import { getGroup, updateGroup, setGroupPhoto, getCategories, getGroupManage, setGroupPrivacy } from "../../lib/api";
 
 /* ------------------------------------------------------------------ */
-/*  Data (verbatim from the legacy page)                               */
+/*  Static reference lists — no backing table for real lesson titles   */
 /* ------------------------------------------------------------------ */
-const GROUP = {
-  id: 34,
-  name: "STD work",
-  description: "Work on Stock Traders Daily",
-  logoText: ["STOCK", "TRADERS", "DAILY"],
-};
-
-const CATEGORIES = [
-  "Arts & Culture",
-  "Business",
-  "Design",
-  "Economics",
-  "Economics & Social Science",
-  "Engineering",
-  "Entertainment",
-  "Family & Home",
-  "Health & Wellness",
-  "Investing",
-  "Languages",
-  "Law",
-  "Mathematics",
-  "Other",
-  "Science",
-  "Sports",
-  "Technology",
-  "demo Category",
-];
-
-const SUB_CATEGORIES = ["Finance", "Business Ethics", "Marketing", "Management", "Leadership"];
-
 const LESSONS = [
   "Stock Report Layer",
   "Stock Report Layer for Neetu",
@@ -70,13 +50,34 @@ const LESSONS = [
 const VIEW_PRIVACY = ["Everyone", "Registered Members", "All Group Members"];
 const MEMBER_PRIVACY = ["Registered Members", "All Group Members", "Officers and Owner Only"];
 
+const VIEW_LABEL_TO_ROLE = { Everyone: "everyone", "Registered Members": "registered", "All Group Members": "member" };
+const VIEW_ROLE_TO_LABEL = { everyone: "Everyone", registered: "Registered Members", member: "All Group Members", officer: "All Group Members" };
+const MEMBER_LABEL_TO_ROLE = { "Registered Members": "registered", "All Group Members": "member", "Officers and Owner Only": "officer" };
+const MEMBER_ROLE_TO_LABEL = { everyone: "Registered Members", registered: "Registered Members", member: "All Group Members", officer: "Officers and Owner Only" };
+
+// Legacy stores selected lesson titles as a bracket/quote string, e.g.
+// `["Lesson A","Lesson B"]` — matching Group_GroupController::editAction()'s
+// own hand-rolled format so this stays schema-compatible with live.
+function parseLessons(raw) {
+  if (!raw) return [];
+  return raw
+    .replace(/[[\]"]/g, "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+function serializeLessons(list) {
+  if (!list.length) return "";
+  return "[" + list.map((l) => `"${l}"`).join(",") + "]";
+}
+
 /* ------------------------------------------------------------------ */
 /*  Primitives                                                         */
 /* ------------------------------------------------------------------ */
 const inputCls =
   "block w-full rounded-xl border border-gray-200/80 bg-white px-4 py-3 text-[15px] text-[#19352d] placeholder:text-[#19352d]/40 focus:border-[#19352d]/40 focus:outline-none focus:ring-2 focus:ring-[#d99b26]/40";
 
-function Dropdown({ value, options, onChange, className = "", icon: Icon }) {
+function Dropdown({ value, options, onChange, className = "", icon: Icon, disabled }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
@@ -91,10 +92,11 @@ function Dropdown({ value, options, onChange, className = "", icon: Icon }) {
     <div ref={ref} className={`relative ${className}`}>
       <button
         type="button"
+        disabled={disabled}
         aria-haspopup="listbox"
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
-        className="flex w-full items-center justify-between gap-3 rounded-xl border border-gray-200/80 bg-white px-4 py-3 text-[15px] font-medium text-[#19352d] transition-colors hover:border-[#19352d]/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#d99b26]"
+        className="flex w-full items-center justify-between gap-3 rounded-xl border border-gray-200/80 bg-white px-4 py-3 text-[15px] font-medium text-[#19352d] transition-colors hover:border-[#19352d]/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#d99b26] disabled:cursor-not-allowed disabled:opacity-50"
       >
         <span className="flex items-center gap-2 truncate">
           {Icon && <Icon className="h-4 w-4 opacity-70" />}
@@ -109,9 +111,10 @@ function Dropdown({ value, options, onChange, className = "", icon: Icon }) {
           className="absolute z-20 mt-2 max-h-72 w-full min-w-[12rem] overflow-y-auto rounded-xl border border-gray-200/80 bg-white p-1.5 shadow-xl"
         >
           {options.map((opt, i) => {
-            const selected = opt === value;
+            const val = typeof opt === "string" ? opt : opt.label;
+            const selected = val === value;
             return (
-              <li key={`${opt}-${i}`} role="option" aria-selected={selected}>
+              <li key={`${val}-${i}`} role="option" aria-selected={selected}>
                 <button
                   type="button"
                   onClick={() => {
@@ -122,7 +125,7 @@ function Dropdown({ value, options, onChange, className = "", icon: Icon }) {
                     selected ? "bg-[#f4f6f3] font-semibold" : ""
                   }`}
                 >
-                  {opt}
+                  {val}
                   {selected && <Check className="h-4 w-4 text-[#d99b26]" />}
                 </button>
               </li>
@@ -278,23 +281,26 @@ function LessonPicker({ selected, onChange, disabled }) {
   );
 }
 
-function PhotoUpload({ file, onChange }) {
+function PhotoUpload({ file, currentUrl, groupInitial, onChange }) {
   const inputRef = useRef(null);
-  const preview = file ? URL.createObjectURL(file) : null;
+  const [preview, setPreview] = useState(null);
+
+  useEffect(() => {
+    if (!file) return setPreview(null);
+    const url = URL.createObjectURL(file);
+    setPreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [file]);
+
+  const shown = preview || currentUrl;
 
   return (
     <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center">
       <div className="grid h-24 w-24 shrink-0 place-items-center overflow-hidden rounded-full bg-gradient-to-br from-[#19352d] to-[#122721] ring-4 ring-[#d99b26]/30">
-        {preview ? (
-          <img src={preview} alt="New group photo" className="h-full w-full object-cover" />
+        {shown ? (
+          <img src={shown} alt="Group photo" className="h-full w-full object-cover" />
         ) : (
-          <span className="text-[11px] font-black leading-tight tracking-wider text-white">
-            {GROUP.logoText.map((l) => (
-              <span key={l} className="block">
-                {l}
-              </span>
-            ))}
-          </span>
+          <span className="text-lg font-black text-white">{groupInitial}</span>
         )}
       </div>
 
@@ -324,10 +330,28 @@ function PhotoUpload({ file, onChange }) {
   );
 }
 
+function resizeImageToDataUrl(file, maxDim = 480, quality = 0.82) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      URL.revokeObjectURL(img.src);
+      resolve(canvas.toDataURL("image/jpeg", quality));
+    };
+    img.onerror = reject;
+    img.src = URL.createObjectURL(file);
+  });
+}
+
 /* ------------------------------------------------------------------ */
 /*  Header                                                             */
 /* ------------------------------------------------------------------ */
-function GroupHeader() {
+function GroupHeader({ group }) {
   return (
     <section className="rounded-3xl bg-gradient-to-br from-[#19352d] to-[#122721] px-6 py-7 text-white shadow-[0_24px_60px_-30px_rgba(18,39,33,0.6)] sm:px-10 sm:py-9">
       <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-sm text-white/60">
@@ -335,15 +359,15 @@ function GroupHeader() {
           Projects
         </Link>
         <ChevronRight className="h-3.5 w-3.5" />
-        <Link to={`/group/${GROUP.id}`} className="hover:text-white">
-          {GROUP.name}
+        <Link to={`/projects/${group.group_id}`} className="hover:text-white">
+          {group.title}
         </Link>
         <ChevronRight className="h-3.5 w-3.5" />
         <span className="text-white/90">Edit Group</span>
       </nav>
       <h1 className="mt-4 text-3xl font-extrabold tracking-tight sm:text-4xl">Edit Group</h1>
       <p className="mt-2 text-base text-white/75 sm:text-lg">
-        Update the details, lessons, and privacy settings for {GROUP.name}.
+        Update the details, lessons, and privacy settings for {group.title}.
       </p>
     </section>
   );
@@ -353,16 +377,22 @@ function GroupHeader() {
 /*  Page                                                               */
 /* ------------------------------------------------------------------ */
 export default function GroupEditDetails() {
-  const { id } = useParams(); // /groups/edit/:id — wire fetch to this later
+  const { id } = useParams();
   const navigate = useNavigate();
 
-  const [name, setName] = useState(GROUP.name);
-  const [description, setDescription] = useState(GROUP.description);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+  const [group, setGroup] = useState(null);
+  const [categories, setCategories] = useState([]);
+  const [isOwner, setIsOwner] = useState(true);
+
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
   const [photo, setPhoto] = useState(null);
-  const [category, setCategory] = useState("Business");
-  const [subCategory, setSubCategory] = useState("Finance");
-  const [includeLessons, setIncludeLessons] = useState(true);
-  const [lessons, setLessons] = useState(["The Opportuniy"]);
+  const [category, setCategory] = useState(null);
+  const [subCategory, setSubCategory] = useState(null);
+  const [includeLessons, setIncludeLessons] = useState(false);
+  const [lessons, setLessons] = useState([]);
   const [dailySummary, setDailySummary] = useState(true);
   const [searchable, setSearchable] = useState("Yes, include in search results.");
   const [invite, setInvite] = useState("No, only officers can invite other people.");
@@ -371,21 +401,110 @@ export default function GroupEditDetails() {
   const [commentPrivacy, setCommentPrivacy] = useState("All Group Members");
   const [photoPrivacy, setPhotoPrivacy] = useState("All Group Members");
   const [eventPrivacy, setEventPrivacy] = useState("All Group Members");
-  const [saving, setSaving] = useState(false);
 
-  const handleSave = () => {
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    Promise.all([getGroup(id), getCategories(), getGroupManage(id).catch(() => null)])
+      .then(([g, cats, manage]) => {
+        if (cancelled) return;
+        setGroup(g);
+        setCategories(cats);
+        setName(g.title || "");
+        setDescription(g.description || "");
+        setCategory(g.category_id || null);
+        setSubCategory(g.sub_category_id || null);
+        const parsedLessons = parseLessons(g.lessons);
+        setLessons(parsedLessons);
+        setIncludeLessons(parsedLessons.length > 0);
+        setDailySummary(!!g.summary_emails);
+        setSearchable(g.search ? "Yes, include in search results." : "No, hide from search results.");
+        setInvite(g.invite ? "Yes, members can invite other people." : "No, only officers can invite other people.");
+        setApprove(g.approval ? "New members must be approved." : "New members can join immediately.");
+        if (manage) {
+          setIsOwner(manage.yourRole === "owner");
+          setViewPrivacy(VIEW_ROLE_TO_LABEL[manage.privacy.view] || "All Group Members");
+          setCommentPrivacy(MEMBER_ROLE_TO_LABEL[manage.privacy.comment] || "All Group Members");
+          setPhotoPrivacy(MEMBER_ROLE_TO_LABEL[manage.privacy.photo] || "All Group Members");
+          setEventPrivacy(MEMBER_ROLE_TO_LABEL[manage.privacy.event] || "All Group Members");
+        }
+      })
+      .catch((err) => !cancelled && setLoadError(err.message || "Could not load this group"))
+      .finally(() => !cancelled && setLoading(false));
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
+
+  const handleSave = async () => {
+    if (!name.trim() || saving) return;
     setSaving(true);
-    // TODO: PUT /api/groups/:id  with all of the above
-    setTimeout(() => {
+    setError("");
+    try {
+      await updateGroup(id, {
+        title: name.trim(),
+        description: description.trim(),
+        category_id: category || 0,
+        sub_category_id: subCategory || 0,
+        search: searchable === "Yes, include in search results.",
+        invite: invite === "Yes, members can invite other people.",
+        approval: approve === "New members must be approved.",
+        summary_emails: dailySummary,
+        lessons: includeLessons ? serializeLessons(lessons) : "",
+      });
+
+      if (photo) {
+        const dataUrl = await resizeImageToDataUrl(photo);
+        await setGroupPhoto(id, dataUrl);
+      }
+
+      if (isOwner) {
+        await Promise.all([
+          setGroupPrivacy(id, "view", VIEW_LABEL_TO_ROLE[viewPrivacy] || "member"),
+          setGroupPrivacy(id, "comment", MEMBER_LABEL_TO_ROLE[commentPrivacy] || "member"),
+          setGroupPrivacy(id, "photo", MEMBER_LABEL_TO_ROLE[photoPrivacy] || "member"),
+          setGroupPrivacy(id, "event", MEMBER_LABEL_TO_ROLE[eventPrivacy] || "member"),
+        ]);
+      }
+
+      navigate(`/projects/${id}`);
+    } catch (err) {
+      setError(err.message || "Could not save these changes");
       setSaving(false);
-      navigate(`/group/${id ?? GROUP.id}`);
-    }, 800);
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="grid min-h-[60vh] place-items-center bg-[#f4f6f3]">
+        <Loader2 className="h-8 w-8 animate-spin text-[#19352d]/40" />
+      </div>
+    );
+  }
+
+  if (loadError || !group) {
+    return (
+      <div className="grid min-h-[60vh] place-items-center bg-[#f4f6f3] px-4 text-center">
+        <div>
+          <p className="text-lg font-semibold text-[#19352d]">{loadError || "Group not found"}</p>
+          <Link to="/projects" className="mt-3 inline-block text-[#8a5f0f] underline underline-offset-4">
+            Back to Projects
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const categoryOptions = categories.map((c) => ({ label: c.title, value: c.category_id }));
+  const selectedCategoryLabel = categoryOptions.find((c) => c.value === category)?.label || "Select a category";
+  const selectedSubCategoryLabel = categoryOptions.find((c) => c.value === subCategory)?.label || "Select a category";
 
   return (
     <div className="bg-[#f4f6f3] font-[Manrope,ui-sans-serif,system-ui] text-[#19352d]">
       <div className="mx-auto max-w-5xl px-4 pb-16 pt-6 sm:px-6 lg:px-8">
-        <GroupHeader />
+        <GroupHeader group={group} />
 
         <form
           onSubmit={(e) => {
@@ -394,6 +513,12 @@ export default function GroupEditDetails() {
           }}
           className="mt-8 space-y-6"
         >
+          {error && (
+            <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
+              {error}
+            </div>
+          )}
+
           {/* ---------- Basics ---------- */}
           <section className="rounded-2xl border border-gray-200/80 bg-white p-6 shadow-[0_18px_40px_-28px_rgba(18,39,33,0.45)] sm:p-8">
             <h2 className="text-xl font-bold text-[#19352d]">Group details</h2>
@@ -413,15 +538,15 @@ export default function GroupEditDetails() {
               </Field>
 
               <Field label="Profile Photo" htmlFor="photo" top>
-                <PhotoUpload file={photo} onChange={setPhoto} />
+                <PhotoUpload file={photo} currentUrl={group.photo_data_url} groupInitial={(group.title || "?")[0]?.toUpperCase()} onChange={setPhoto} />
               </Field>
 
               <Field label="Category" htmlFor="category">
-                <Dropdown value={category} options={CATEGORIES} onChange={setCategory} className="sm:max-w-xs" />
+                <Dropdown value={selectedCategoryLabel} options={categoryOptions} onChange={(opt) => setCategory(opt.value)} className="sm:max-w-xs" />
               </Field>
 
-              <Field label="Sub Category" htmlFor="subCategory">
-                <Dropdown value={subCategory} options={SUB_CATEGORIES} onChange={setSubCategory} className="sm:max-w-xs" />
+              <Field label="Sub Category" htmlFor="subCategory" hint="Reuses the same category list — there's no separate subcategory table in the schema.">
+                <Dropdown value={selectedSubCategoryLabel} options={categoryOptions} onChange={(opt) => setSubCategory(opt.value)} className="sm:max-w-xs" />
               </Field>
             </div>
           </section>
@@ -484,6 +609,9 @@ export default function GroupEditDetails() {
           {/* ---------- Privacy ---------- */}
           <section className="rounded-2xl border border-gray-200/80 bg-white p-6 shadow-[0_18px_40px_-28px_rgba(18,39,33,0.45)] sm:p-8">
             <h2 className="text-xl font-bold text-[#19352d]">Privacy</h2>
+            {!isOwner && (
+              <p className="mt-2 text-sm text-[#19352d]/60">Only the group owner can change privacy settings.</p>
+            )}
             <div className="mt-6 grid grid-cols-1 gap-5 md:grid-cols-2">
               {[
                 { label: "View Privacy", hint: "Who may see this group?", icon: Eye, value: viewPrivacy, set: setViewPrivacy, options: VIEW_PRIVACY },
@@ -497,7 +625,7 @@ export default function GroupEditDetails() {
                     {label}
                   </p>
                   <p className="mt-0.5 text-sm text-[#19352d]/60">{hint}</p>
-                  <Dropdown value={value} options={options} onChange={set} className="mt-3" />
+                  <Dropdown value={value} options={options} onChange={set} className="mt-3" disabled={!isOwner} />
                 </div>
               ))}
             </div>
@@ -506,7 +634,7 @@ export default function GroupEditDetails() {
           {/* ---------- Footer ---------- */}
           <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center">
             <Link
-              to={`/group/${GROUP.id}`}
+              to={`/projects/${id}`}
               className="inline-flex justify-center rounded-full px-6 py-3.5 text-base font-semibold text-[#19352d]/70 hover:bg-white hover:text-[#19352d] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#19352d]/30"
             >
               Cancel
@@ -516,7 +644,7 @@ export default function GroupEditDetails() {
               disabled={saving || !name.trim()}
               className="inline-flex items-center justify-center gap-2 rounded-full bg-[#d99b26] px-8 py-3.5 text-base font-bold text-[#122721] shadow-[0_10px_30px_-10px_rgba(217,155,38,0.8)] transition-colors hover:bg-[#e6ab3a] disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus-visible:ring-4 focus-visible:ring-[#d99b26]/40 sm:ml-auto"
             >
-              <Check className="h-4 w-4" strokeWidth={3} />
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" strokeWidth={3} />}
               {saving ? "Saving…" : "Save Changes"}
             </button>
           </div>

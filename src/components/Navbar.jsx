@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { NavLink, Link, useNavigate } from "react-router-dom";
 import logo from "../assets/logo.png";
 import { useAuth } from "../lib/AuthContext";
+import NotificationBell from "./NotificationBell";
 
 const links = [
   { to: "/projects", label: "Projects" },
@@ -11,11 +12,10 @@ const links = [
   { to: "/credits", label: "Credits" },
 ];
 
-const more = [
+const more = (user) => [
   ["Community", [["Coaches corner", "/coaches-corner"], ["Members", "/members"], ["Forum", "/forums"], ["Summary", "/summary"]]],
-  ["Account", [["My profile", "/profile/:sourabh"], ["Messages", "/messages"], ["Settings", "/settings"]]],
+  ["Account", [["My profile", `/profile/${user.username || user.user_id}`], ["Messages", "/messages"], ["Settings", "/settings"]]],
 ];
-
 export default function Navbar({ updates = 0 }) {
   const [open, setOpen] = useState(false);
   const [menu, setMenu] = useState(false);
@@ -57,6 +57,11 @@ export default function Navbar({ updates = 0 }) {
         </Link>
 
         <nav className="mx-auto hidden items-center gap-1 lg:flex">
+          {user.role?.isAdmin && (
+            <NavLink to="/admin/roles" className={({ isActive }) => `${pill} ${isActive ? "bg-forest text-white hover:bg-forest hover:text-white" : ""}`}>
+              Admin
+            </NavLink>
+          )}
           {links.map((l) => (
             <NavLink key={l.to} to={l.to} className={({ isActive }) => `${pill} ${isActive ? "bg-forest text-white hover:bg-forest hover:text-white" : ""}`}>
               {l.label}
@@ -74,7 +79,7 @@ export default function Navbar({ updates = 0 }) {
                   <p className="truncate text-[15px] font-bold text-ink">{user.displayname}</p>
                   <p className="truncate text-[13px] text-ink/55">{user.email}</p>
                 </div>
-                {more.map(([title, items]) => (
+                {more(user).map(([title, items]) => (
                   <div key={title}>
                     <p className="px-3 pb-1 pt-2 text-xs font-bold uppercase tracking-wider text-gold-deep">{title}</p>
                     {items.map(([label, to]) => (
@@ -89,10 +94,7 @@ export default function Navbar({ updates = 0 }) {
         </nav>
 
         <div className="ml-auto hidden items-center gap-2 lg:flex">
-          <Link to="/updates" className="relative grid h-10 w-10 place-items-center rounded-full border border-line text-ink/70 hover:border-forest hover:text-forest" aria-label={`${updates} updates`}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9"><path d="M6 8a6 6 0 0112 0v5l2 3H4l2-3zM10 20a2 2 0 004 0" /></svg>
-            {updates > 0 && <span className="absolute -right-1 -top-1 rounded-full bg-crimson px-1.5 py-px text-[11px] font-bold text-white">{updates}</span>}
-          </Link>
+          <NotificationBell />
           <Link to="/become-a-skillcoach" className="rounded-full bg-gold px-5 py-2.5 text-[15px] font-bold text-ink shadow-[0_8px_20px_-10px_rgba(217,164,65,.9)] transition-transform hover:-translate-y-px hover:bg-gold-deep hover:text-white">
             Become a SkillCoach
           </Link>
@@ -109,10 +111,13 @@ export default function Navbar({ updates = 0 }) {
             <p className="truncate text-[16px] font-bold text-ink">{user.displayname}</p>
             <p className="truncate text-[13.5px] text-ink/55">{user.email}</p>
           </div>
+          {user.role?.isAdmin && (
+            <NavLink to="/admin/roles" onClick={() => setOpen(false)} className={({ isActive }) => `block rounded-xl px-4 py-3 text-[16px] font-semibold ${isActive ? "bg-forest text-white" : "text-ink/80"}`}>Admin</NavLink>
+          )}
           {links.map((l) => (
             <NavLink key={l.to} to={l.to} onClick={() => setOpen(false)} className={({ isActive }) => `block rounded-xl px-4 py-3 text-[16px] font-semibold ${isActive ? "bg-forest text-white" : "text-ink/80"}`}>{l.label}</NavLink>
           ))}
-          {more.map(([title, items]) => (
+      {more(user).map(([title, items]) => (
             <div key={title} className="mt-2 border-t border-line pt-2">
               <p className="px-4 pb-1 text-xs font-bold uppercase tracking-wider text-gold-deep">{title}</p>
               {items.map(([label, to]) => <Link key={to} to={to} onClick={() => setOpen(false)} className="block rounded-xl px-4 py-2.5 text-[15px] font-medium text-ink/80">{label}</Link>)}

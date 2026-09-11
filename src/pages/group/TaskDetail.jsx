@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useOutletContext, useParams, useSearchParams } from "react-router-dom";
 import { getTaskById } from "../../lib/groupHelpers";
+import { useToast } from "../../components/Toast";
+import { useConfirm } from "../../components/ConfirmDialog";
 import {
   createAssignment,
   toggleAssignmentDone,
@@ -316,6 +318,8 @@ export default function TaskDetail() {
   const { groupId, taskId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const toast = useToast();
+  const confirm = useConfirm();
   const { workspace, setWorkspace } = useOutletContext();
   const [searchParams] = useSearchParams();
   const highlightId = searchParams.get("assignment");
@@ -383,13 +387,23 @@ export default function TaskDetail() {
   };
 
   const canToggleTaskDone = task.assigneeId === user?.user_id;
+
   const toggleTaskDoneHandler = async () => {
     const nextDone = !task.done;
+    const ok = await confirm({
+      title: nextDone ? "Mark task as finished?" : "Mark task as not finished?",
+      message: `"${task.title}" will be updated for everyone in the group.`,
+      confirmText: nextDone ? "Mark finished" : "Mark not finished",
+    });
+    if (!ok) return;
+
     patchTask(() => ({ done: nextDone })); // optimistic
     try {
       await toggleTaskDone(groupId, task.id, nextDone);
-    } catch {
+      toast(nextDone ? "Task marked as finished" : "Task marked as not finished");
+    } catch (err) {
       patchTask(() => ({ done: !nextDone })); // revert on failure
+      toast(err.message, "error");
     }
   };
 
@@ -402,25 +416,48 @@ export default function TaskDetail() {
         comments: t.comments.map((c) => (c.id === parentId ? { ...c, replies: [...(c.replies || []), created] } : c)),
       }));
     }
+    toast(parentId ? "Reply posted" : "Comment posted");
   };
 
   const deleteTaskCommentHandler = async (commentId) => {
+    const ok = await confirm({
+      title: "Delete this comment?",
+      message: "Replies to it will be removed as well.",
+      confirmText: "Delete comment",
+      danger: true,
+    });
+    if (!ok) return;
     await deleteTaskComment(groupId, task.id, commentId);
     patchTask((t) => ({ comments: removeCommentById(t.comments, commentId) }));
+    toast("Comment deleted");
   };
 
   const deleteTaskHandler = async () => {
-    if (!window.confirm(`Delete "${task.title}"? This also removes its assignments, comments and hours.`)) return;
+    const ok = await confirm({
+      title: "Delete this task?",
+      message: `"${task.title}" and all its assignments, comments and hours will be removed. This can't be undone.`,
+      confirmText: "Delete task",
+      danger: true,
+    });
+    if (!ok) return;
     try {
       await deleteGroupTask(groupId, task.id);
+      toast("Task deleted successfully");
       navigate(`/projects/${groupId}/tasks`);
     } catch (err) {
-      window.alert(err.message);
+      toast(err.message, "error");
     }
   };
 
   const deleteAssignmentHandler = async (assignmentId) => {
-    if (!window.confirm("Delete this assignment? This also removes its comments and hours.")) return;
+    const current = task.assignments.find((a) => a.id === assignmentId);
+    const ok = await confirm({
+      title: "Delete this assignment?",
+      message: `"${current?.title ?? "This assignment"}" and its comments and hours will be removed. This can't be undone.`,
+      confirmText: "Delete assignment",
+      danger: true,
+    });
+    if (!ok) return;
     try {
       await deleteAssignment(groupId, task.id, assignmentId);
       setWorkspace((prev) => ({
@@ -429,24 +466,42 @@ export default function TaskDetail() {
           t.id !== task.id ? t : { ...t, assignments: t.assignments.filter((a) => a.id !== assignmentId) }
         ),
       }));
+      toast("Assignment deleted successfully");
     } catch (err) {
-      window.alert(err.message);
+      toast(err.message, "error");
     }
   };
 
   const deleteAssignmentCommentHandler = async (assignmentId, commentId) => {
+    const ok = await confirm({
+      title: "Delete this comment?",
+      message: "Replies to it will be removed as well.",
+      confirmText: "Delete comment",
+      danger: true,
+    });
+    if (!ok) return;
     await deleteAssignmentComment(groupId, task.id, assignmentId, commentId);
     patchAssignment(assignmentId, (a) => ({ comments: removeCommentById(a.comments, commentId) }));
+    toast("Comment deleted");
   };
 
   const toggleDone = async (id) => {
     const current = task.assignments.find((a) => a.id === id);
     const nextDone = !current?.done;
+    const ok = await confirm({
+      title: nextDone ? "Mark assignment as finished?" : "Mark assignment as not finished?",
+      message: `"${current?.title}" will be updated for everyone in the group.`,
+      confirmText: nextDone ? "Mark finished" : "Mark not finished",
+    });
+    if (!ok) return;
+
     patchAssignment(id, () => ({ done: nextDone })); // optimistic
     try {
       await toggleAssignmentDone(groupId, task.id, id, nextDone);
-    } catch {
+      toast(nextDone ? "Assignment marked as finished" : "Assignment marked as not finished");
+    } catch (err) {
       patchAssignment(id, () => ({ done: !nextDone })); // revert on failure
+      toast(err.message, "error");
     }
   };
 
@@ -459,6 +514,7 @@ export default function TaskDetail() {
         comments: a.comments.map((c) => (c.id === parentId ? { ...c, replies: [...(c.replies || []), created] } : c)),
       }));
     }
+     toast(parentId ? "Reply posted" : "Comment posted");
   };
 
   const addHours = async (id, data) => {
@@ -491,6 +547,7 @@ export default function TaskDetail() {
       }));
       setForm({ title: "", assignee: workspace.members[0]?.id ?? "", details: "" });
       setShowForm(false);
+       toast("Assignment created successfully");
     } catch (err) {
       setFormError(err.message);
     }

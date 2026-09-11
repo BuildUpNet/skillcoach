@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import rateLimit from 'express-rate-limit'
 import { pool } from '../db.js'
+import { award } from '../lib/credits.js';
 import {
   generateUserSalt,
   hashPassword,
@@ -10,6 +11,10 @@ import {
   clearSessionCookie,
   requireAuth,
   publicUser,
+  getDefaultLevelId,
+  verifySessionToken,
+  IMPERSONATE_COOKIE,
+  clearImpersonateCookie,
 } from '../auth.js'
 
 export const authRouter = Router()
@@ -48,7 +53,7 @@ authRouter.post('/register', registerLimiter, async (req, res) => {
 
   const salt = generateUserSalt()
   const hashed = await hashPassword(password, salt)
-  const levelId = process.env.DEFAULT_LEVEL_ID || 1
+  const levelId = await getDefaultLevelId()
 
   const [result] = await pool.query(
     `INSERT INTO engine4_users
@@ -61,9 +66,14 @@ authRouter.post('/register', registerLimiter, async (req, res) => {
   const [rows] = await pool.query('SELECT * FROM engine4_users WHERE user_id = ?', [result.insertId])
   const user = rows[0]
 
+  try {
+    await award(user.user_id, 'signup')
+  } catch (err) {
+    console.error('signup award failed:', err.message)
+  }
   const token = signSession(user)
   setSessionCookie(res, token)
-  res.status(201).json({ user: publicUser(user) })
+  res.status(201).json({ user: await publicUser(user) })
 })
 
 // authRouter.post('/login', loginLimiter, async (req, res) => {
@@ -193,21 +203,55 @@ authRouter.post('/login', loginLimiter, async (req, res) => {
   setSessionCookie(res, token)
 
   console.log('LOGIN: sending response')
-
+  try {
+    await award(user.user_id, 'user_login')
+  } catch (err) {
+    console.error('login award failed:', err.message)
+  }
   return res.json({
-    user: publicUser(user),
+    user: await publicUser(user),
   })
 })
 
 authRouter.post('/logout', (req, res) => {
   clearSessionCookie(res)
+  clearImpersonateCookie(res)
   res.status(204).end()
 })
 
 authRouter.get('/me', requireAuth, async (req, res) => {
   const [rows] = await pool.query('SELECT * FROM engine4_users WHERE user_id = ?', [req.userId])
   if (!rows.length) return res.status(401).json({ error: 'Account no longer exists' })
-  res.json({ user: publicUser(rows[0]) })
+  res.json({
+    user: await publicUser(rows[0]),
+    impersonating: !!req.cookies?.[IMPERSONATE_COOKIE],
+  })
+})
+
+// Restores the admin's own session after a "login as user" — works even
+// though the caller is currently signed in as someone else (only requires
+// the impersonate cookie an admin action itself set, not another admin check).
+authRouter.post('/stop-impersonating', requireAuth, async (req, res) => {
+  const stashedToken = req.cookies?.[IMPERSONATE_COOKIE]
+  if (!stashedToken) return res.status(400).json({ error: 'Not currently impersonating anyone' })
+
+  let payload
+  try {
+    payload = verifySessionToken(stashedToken)
+  } catch {
+    clearImpersonateCookie(res)
+    return res.status(401).json({ error: 'Your original session expired — please sign in again' })
+  }
+
+  const [rows] = await pool.query('SELECT * FROM engine4_users WHERE user_id = ?', [payload.sub])
+  if (!rows.length) {
+    clearImpersonateCookie(res)
+    return res.status(404).json({ error: 'Your original account no longer exists' })
+  }
+
+  clearImpersonateCookie(res)
+  setSessionCookie(res, stashedToken)
+  res.json({ user: await publicUser(rows[0]) })
 })
 
 authRouter.put('/me/password', requireAuth, async (req, res) => {

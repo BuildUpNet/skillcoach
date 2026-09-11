@@ -1,7 +1,14 @@
 import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import AppLayout from "../layouts/AppLayout";
 import GroupLayout from "../layouts/GroupLayout";
+import AdminLayout from "../layouts/AdminLayout";
 import RequireAuth from "../components/RequireAuth";
+import RequireAdmin from "../components/RequireAdmin";
+import AdminRoles from "../pages/admin/AdminRoles";
+import AdminUsers from "../pages/admin/AdminUsers";
+import AdminGroups from "../pages/admin/AdminGroups";
+// import AdminSettings from "../pages/admin/AdminSettings"; // temporarily disabled, no clear use case yet
+import AdminLogs from "../pages/admin/AdminLogs";
 import { useAuth } from "../lib/AuthContext";
 import Projects from "../pages/Projects";
 import SignIn from "../pages/SignIn";
@@ -16,6 +23,7 @@ import GroupInvite from "../pages/group/Invite";
 import GroupTimeline from "../pages/group/Timeline";
 import GroupLessons from "../pages/group/Lessons";
 import GroupTasks from "../pages/group/Tasks";
+import GroupManage from "../pages/group/Manage";
 import TaskDetail from "../pages/group/TaskDetail";
 import CreateGroup from "../pages/CreateGroup";
 import EditGroup from "../pages/EditGroup";
@@ -32,6 +40,10 @@ import Members from "../pages/Members";
 import Forums from "../pages/forum/Forums";
 import ForumTopics from "../pages/forum/ForumTopics";
 import ForumTopic from "../pages/forum/ForumTopic";
+
+import UpgradePage from "../pages/UpgradePage";
+import Notifications from "../pages/Notifications";
+import EditProfile from "../pages/EditProfile";
 import MemberHome from "../pages/MemberHome";
 
 import GroupCreateTask from "../pages/adminpages/GroupCreateTask";
@@ -42,6 +54,9 @@ import GroupAssigned from "../pages/adminpages/GroupAssigned";
 import GroupReadyToAccept from "../pages/adminpages/GroupReadyToAccept";
 import GroupTimeSummaryReport from "../pages/adminpages/GroupTimeSummaryReport";
 import GroupAccepted from "../pages/adminpages/GroupAccepted";
+import ForgotPassword from "../pages/ForgotPassword";
+import ResetPassword from "../pages/ResetPassword";
+
 
 function SignInWrapper() {
   const navigate = useNavigate();
@@ -50,9 +65,7 @@ function SignInWrapper() {
   return (
     <SignIn
       onNavigateToSignUp={() => navigate("/signup")}
-      onForgotPassword={() =>
-        alert("Password reset link will be sent to your email.")
-      }
+      onForgotPassword={() => navigate("/forgot")}
       onSuccess={(user) => { signIn(user); navigate("/projects"); }}
     />
   );
@@ -70,18 +83,43 @@ function SignUpWrapper() {
   );
 }
 
+function ForgotPasswordWrapper() {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  if (user) return <Navigate to="/projects" replace />;
+  return <ForgotPassword onBackToSignIn={() => navigate("/")} />;
+}
+
+function ResetPasswordWrapper() {
+  const navigate = useNavigate();
+  const { signIn } = useAuth();
+  return (
+    <ResetPassword
+      onSuccess={(user) => { signIn(user); navigate("/projects"); }}
+      onBackToSignIn={() => navigate("/")}
+      onForgotAgain={() => navigate("/forgot")}
+    />
+  );
+}
+
 export default function AppRoutes() {
   return (
     <Routes>
       <Route element={<AppLayout />}>
+        {/* public */}
         <Route path="/" element={<SignInWrapper />} />
         <Route path="/signup" element={<SignUpWrapper />} />
+        <Route path="/forgot" element={<ForgotPasswordWrapper />} />
+        <Route path="/reset" element={<ResetPasswordWrapper />} />
+        <Route path="/settings/upgrade" element={<UpgradePage />} />
 
+        {/* signed-in members */}
         <Route element={<RequireAuth />}>
           <Route path="/home" element={<MemberHome />} />
           <Route path="/members/home" element={<MemberHome />} />
           <Route path="/member-home" element={<MemberHome />} />
           <Route path="/projects" element={<Projects />} />
+
           <Route path="/projects/:groupId" element={<GroupLayout />}>
             <Route index element={<GroupDashboard />} />
             <Route path="my-tasks" element={<GroupMyTasks />} />
@@ -90,15 +128,19 @@ export default function AppRoutes() {
             <Route path="time-summary" element={<GroupTimeSummary />} />
             <Route path="members" element={<GroupMembers />} />
             <Route path="invite" element={<GroupInvite />} />
+            <Route path="manage" element={<GroupManage />} />
             <Route path="timeline" element={<GroupTimeline />} />
             <Route path="lessons" element={<GroupLessons />} />
             <Route path="tasks" element={<GroupTasks />} />
             <Route path="tasks/:taskId" element={<TaskDetail />} />
           </Route>
+
           <Route path="/group/create" element={<CreateGroup />} />
           <Route path="/group/edit/:groupId" element={<EditGroup />} />
           <Route path="/group/browser" element={<BrowseGroups />} />
           <Route path="/profile/:username" element={<MemberProfile />} />
+          <Route path="/profile/edit" element={<EditProfile />} />
+          <Route path="/profile/edit/:tab" element={<EditProfile />} />
           <Route path="/settings" element={<SettingsGeneral />} />
           <Route path="/settings/:tab" element={<SettingsGeneral />} />
           <Route path="/instruction" element={<Instruction />} />
@@ -112,28 +154,40 @@ export default function AppRoutes() {
           <Route path="/forums/:forumId/:forumSlug" element={<ForumTopics />} />
           <Route path="/forums/topic/:topicId/:topicSlug" element={<ForumTopic />} />
           <Route path="/privacy" element={<SettingsGeneral defaultTab="Privacy" />} />
-          <Route path="/notifications" element={<SettingsGeneral defaultTab="Notifications" />} />
+          <Route path="/notifications" element={<Notifications />} />
+          <Route path="/settings/notifications" element={<SettingsGeneral defaultTab="Notifications" />} />
           <Route path="/timeline" element={<SettingsGeneral defaultTab="Timeline" />} />
           <Route path="/change-password" element={<SettingsGeneral defaultTab="Change Password" />} />
           <Route path="/delete-account" element={<SettingsGeneral defaultTab="Delete Account" />} />
+
           <Route path="/group/:id/create-task" element={<GroupCreateTask />} />
           <Route path="/groups/edit/:id" element={<GroupEditDetails />} />
+          <Route path="/groups/invite/:id" element={<GroupInviteFriends />} />
 
           <Route path="/messages/inbox" element={<GroupMessages tab="inbox" />} />
           <Route path="/messages/outbox" element={<GroupMessages tab="outbox" />} />
           <Route path="/messages/outbox/page/:page" element={<GroupMessages tab="outbox" />} />
           <Route path="/messages/compose" element={<GroupMessages tab="compose" />} />
-          <Route path="/messages/compose/to/:groupId/multi/group" element={<GroupMessages tab="compose" />} />
-          <Route path="/groups/invite/:id" element={<GroupInviteFriends />} />
           <Route path="/group/:id/assigned" element={<GroupAssigned />} />
           <Route path="/group/:id/ready-to-accept" element={<GroupReadyToAccept />} />
           <Route path="/group/:id/time-summary" element={<GroupTimeSummaryReport />} />
           <Route path="/group/:id/accepted" element={<GroupAccepted />} />
-          
+        </Route>
+
+        {/* admin */}
+        <Route element={<RequireAdmin />}>
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route index element={<Navigate to="/admin/roles" replace />} />
+            <Route path="roles" element={<AdminRoles />} />
+            <Route path="users" element={<AdminUsers />} />
+            <Route path="groups" element={<AdminGroups />} />
+            {/* <Route path="settings" element={<AdminSettings />} /> temporarily disabled, no clear use case yet */}
+            <Route path="logs" element={<AdminLogs />} />
+          </Route>
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>
   );
-}
+}

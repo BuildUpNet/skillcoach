@@ -5,7 +5,8 @@ import RichTextEditor, { sanitizeHtml } from "../../components/group/RichTextEdi
 import Icon from "../../components/group/icons";
 import { createGroupTask, updateGroupTask, deleteGroupTask } from "../../lib/api";
 import { useAuth } from "../../lib/AuthContext";
-
+import { useToast } from "../../components/Toast";
+import { useConfirm } from "../../components/ConfirmDialog";
 const inputBase = "w-full rounded-xl border border-line bg-white px-3.5 py-2.5 text-[15px] text-ink outline-none transition-all placeholder:text-ink/45 hover:border-forest/40 focus:border-forest focus:ring-4 focus:ring-forest/10";
 
 function emptyForm(members) {
@@ -51,6 +52,8 @@ function TaskForm({ form, setForm, members, error, onSubmit, onCancel, submitLab
 export default function GroupTasks() {
   const { groupId } = useParams();
   const { user } = useAuth();
+  const toast = useToast();
+  const confirm = useConfirm();
   const { workspace, setWorkspace } = useOutletContext();
   const { tasks, members } = workspace;
   const isGroupOwner = members.find((m) => m.role === "Owner")?.id === user?.user_id;
@@ -75,6 +78,7 @@ export default function GroupTasks() {
       setWorkspace((prev) => ({ ...prev, tasks: [created, ...prev.tasks] }));
       setCreateForm(emptyForm(members));
       setShowCreate(false);
+       toast("Task created successfully");
     } catch (err) {
       setCreateError(err.message);
     }
@@ -106,18 +110,26 @@ export default function GroupTasks() {
       }));
       setEditingId(null);
       setEditForm(null);
+      toast("Task updated successfully");
     } catch (err) {
       setEditError(err.message);
     }
   };
 
   const handleDelete = async (task) => {
-    if (!window.confirm(`Delete "${task.title}"? This also removes its assignments, comments and hours.`)) return;
+    const ok = await confirm({
+      title: "Delete this task?",
+      message: `"${task.title}" and all its assignments, comments and hours will be removed. This can't be undone.`,
+      confirmText: "Delete task",
+      danger: true,
+    });
+    if (!ok) return;
     try {
       await deleteGroupTask(groupId, task.id);
       setWorkspace((prev) => ({ ...prev, tasks: prev.tasks.filter((t) => t.id !== task.id) }));
+      toast("Task deleted successfully");
     } catch (err) {
-      window.alert(err.message);
+        toast(err.message, "error");
     }
   };
 

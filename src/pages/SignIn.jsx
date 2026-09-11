@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { login } from "../lib/api";
 
+import { login, googleLoginUrl, facebookLoginUrl } from "../lib/api";
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function ErrorText({ children }) {
@@ -21,7 +21,9 @@ export default function SignIn({ onNavigateToSignUp, onForgotPassword, onSuccess
   const [touched, setTouched] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [formError, setFormError] = useState("");
+  const [formError, setFormError] = useState(
+  new URLSearchParams(window.location.search).get("error") || ""
+);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -73,7 +75,7 @@ export default function SignIn({ onNavigateToSignUp, onForgotPassword, onSuccess
   const inputErr = "border-red-400 focus:border-red-500 focus:ring-4 focus:ring-red-100";
 
   return (
-    <div className="mx-auto flex max-w-[1200px] flex-col items-center px-4 py-14 lg:py-20">
+    <div className="mx-auto flex max-w-[1200px] flex-col items-center px-4 py-8 lg:py-12">
       <div className="w-full max-w-xl overflow-hidden rounded-3xl bg-white shadow-[0_2px_4px_rgba(20,26,24,.04),0_30px_60px_-36px_rgba(20,26,24,.35)] ring-1 ring-line">
         <div className="h-[3px] bg-[linear-gradient(90deg,#22433b,#d9a441_50%,#22433b)]" />
 
@@ -94,7 +96,7 @@ export default function SignIn({ onNavigateToSignUp, onForgotPassword, onSuccess
             </button>
           </div>
         ) : (
-          <div className="p-7 sm:p-10">
+         <div className="p-6 sm:p-8">
             <div className="mb-8 border-b border-line pb-6">
               <p className="text-[13px] font-bold uppercase tracking-wider text-gold-deep">Welcome back</p>
               <h1 className="mt-2 text-[32px] font-extrabold leading-tight tracking-tight text-ink sm:text-[36px]">Member sign in</h1>
@@ -104,7 +106,34 @@ export default function SignIn({ onNavigateToSignUp, onForgotPassword, onSuccess
               </p>
             </div>
 
-            <form onSubmit={handleSubmit} noValidate className="space-y-6">
+            <form onSubmit={handleSubmit} noValidate className="space-y-5">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+  <button type="button"
+    onClick={() => { window.location.href = googleLoginUrl(); }}
+    className="flex items-center justify-center gap-2.5 rounded-xl border border-line bg-white px-4 py-3 text-[15px] font-semibold text-ink transition-all hover:border-forest/40 hover:bg-mist">
+    <svg className="h-5 w-5" viewBox="0 0 24 24">
+      <path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5a5.6 5.6 0 0 1-2.4 3.7v3h3.9c2.3-2.1 3.5-5.2 3.5-8.9z"/>
+      <path fill="#34A853" d="M12 24c3.2 0 5.9-1.1 7.9-2.9l-3.9-3c-1.1.7-2.4 1.2-4 1.2-3.1 0-5.7-2.1-6.6-4.9H1.4v3.1A12 12 0 0 0 12 24z"/>
+      <path fill="#FBBC05" d="M5.4 14.4a7.2 7.2 0 0 1 0-4.6V6.7H1.4a12 12 0 0 0 0 10.8l4-3.1z"/>
+      <path fill="#EA4335" d="M12 4.8c1.8 0 3.4.6 4.6 1.8l3.4-3.4A12 12 0 0 0 1.4 6.7l4 3.1C6.3 6.9 8.9 4.8 12 4.8z"/>
+    </svg>
+    Google
+  </button>
+
+  <button type="button"
+    onClick={() => { window.location.href = facebookLoginUrl(); }}
+    className="flex items-center justify-center gap-2.5 rounded-xl border border-line bg-white px-4 py-3 text-[15px] font-semibold text-ink transition-all hover:border-forest/40 hover:bg-mist">
+    <svg className="h-5 w-5" viewBox="0 0 24 24" fill="#1877F2">
+      <path d="M24 12.07C24 5.4 18.63 0 12 0S0 5.4 0 12.07C0 18.1 4.39 23.1 10.13 24v-8.44H7.08v-3.49h3.05V9.41c0-3.02 1.79-4.69 4.53-4.69 1.31 0 2.68.24 2.68.24v2.96h-1.51c-1.49 0-1.96.93-1.96 1.89v2.26h3.33l-.53 3.49h-2.8V24C19.61 23.1 24 18.1 24 12.07z"/>
+    </svg>
+    Facebook
+  </button>
+</div>
+<div className="flex items-center gap-4">
+  <span className="h-px flex-1 bg-line" />
+  <span className="text-[13.5px] font-medium text-ink/45">or sign in with email</span>
+  <span className="h-px flex-1 bg-line" />
+</div>
               {formError && (
                 <p className="flex items-center gap-1.5 rounded-xl bg-red-50 px-4 py-3 text-[14px] font-medium text-red-600 ring-1 ring-red-100">
                   <svg className="h-4 w-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" /></svg>
@@ -146,7 +175,7 @@ export default function SignIn({ onNavigateToSignUp, onForgotPassword, onSuccess
               </div>
 
               <button type="submit" disabled={isSubmitting}
-                className="inline-flex w-full items-center justify-center rounded-xl bg-forest px-6 py-3.5 text-[16px] font-bold text-white shadow-[0_12px_28px_-14px_rgba(34,67,59,.8)] transition-all hover:-translate-y-px hover:bg-forest-deep active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-70">
+                className="inline-flex w-full items-center justify-center rounded-xl bg-forest px-6 py-3 text-[16px] font-bold text-white shadow-[0_12px_28px_-14px_rgba(34,67,59,.8)] transition-all hover:-translate-y-px hover:bg-forest-deep active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-70">
                 {isSubmitting ? (
                   <span className="flex items-center gap-2">
                     <svg className="h-5 w-5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" /></svg>
@@ -166,7 +195,7 @@ export default function SignIn({ onNavigateToSignUp, onForgotPassword, onSuccess
         </div>
       </div>
 
-      <div className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[13.5px] text-ink/50">
+      <div className="mt-6 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[13.5px] text-ink/50">
         <span className="flex items-center gap-1.5">
           <svg className="h-4 w-4 text-gold-deep" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
           256-bit SSL encryption
