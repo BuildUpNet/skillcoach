@@ -35,8 +35,7 @@ export async function findOrCreateSocialUser({
     );
     let user = linked[0];
 
-    // 2) verified email se existing account auto-link
-    if (!user && email && emailVerified) {
+  if (!user && email && emailVerified) {
       const [byEmail] = await conn.query(
         "SELECT * FROM engine4_users WHERE email = ? LIMIT 1", [email]);
       user = byEmail[0];
