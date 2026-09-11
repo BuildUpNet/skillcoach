@@ -19,7 +19,9 @@ import { profilesRouter } from './routes/profiles.js'
 import { profileEditRouter } from './routes/profileEdit.js'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { friendsRouter } from './routes/friends.js'
+import { friendsRouter } from './routes/friends.js'  
+import { googleRouter } from "./routes/google.js";
+import { facebookRouter } from "./routes/facebook.js";
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const app = express()
 
@@ -41,6 +43,8 @@ app.use(express.json({ limit: '6mb' }))
 app.use(cookieParser())
 
 app.use('/api/auth', authRouter)
+app.use('/api/auth', googleRouter) 
+app.use('/api/auth', facebookRouter) 
 app.use('/api/credits', creditsRouter);
 app.use('/api/notifications', requireAuth, notificationsRouter)
 app.use('/api/admin', requireAuth, requireAdmin, adminRouter)

@@ -99,6 +99,7 @@ export const changePassword = (data) =>
 export const getGeneralSettings = () => request("/api/settings/general");
 export const updateGeneralSettings = (data) =>
   request("/api/settings/general", { method: "PUT", body: JSON.stringify(data) });
+export const googleLoginUrl = () => `${BASE_URL}/api/auth/google`;
 export const disconnectFacebook = () => request("/api/settings/facebook", { method: "DELETE" });
 export const disconnectTwitter = () => request("/api/settings/twitter", { method: "DELETE" });
 
