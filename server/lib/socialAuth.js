@@ -1,8 +1,7 @@
 import crypto from "crypto";
-import { pool } from "../db.js";        // <-- jo path auth.js mein hai wahi
+import { pool } from "../db.js";
 import { getDefaultLevelId, generateUserSalt } from "../auth.js";
 
-const levelId = await getDefaultLevelId();
 const DEFAULT_IP = Buffer.from("00000000000000000000000000000001", "hex");
 const rand = (n = 16) => crypto.randomBytes(n).toString("hex");
 
@@ -43,28 +42,44 @@ export async function findOrCreateSocialUser({
       user = byEmail[0];
     }
 
- if (!user) {
-  if (!email) throw new Error("Email not provided by provider");
-  const username = await uniqueUsername(conn, name || email);
-  const levelId = await getDefaultLevelId();          // <-- ye line honi chahiye
-  const [ins] = await conn.query(
-    `INSERT INTO engine4_users
-      (email, username, displayname, password, salt, level_id,
-       enabled, verified, approved, creation_date, creation_ip, modified_date)
-     VALUES (?, ?, ?, ?, ?, ?, 1, 1, 1, NOW(), ?, NOW())`,
-    [
-      email,
-      username,
-      name || username,
-      crypto.createHash("md5").update(rand(32)).digest("hex"),  // password
-      generateUserSalt(),                                        // salt
-      levelId,                                                   // level_id
-      DEFAULT_IP,                                                // creation_ip
-    ]
-  );
+    // 3) naya user
+    if (!user) {
+      if (!email) throw new Error("Email not provided by provider");
+
+      const username = await uniqueUsername(conn, name || email);
+      const levelId = await getDefaultLevelId();
+      if (!levelId) throw new Error("No default level_id found in engine4_authorization_levels");
+
+      const [ins] = await conn.query(
+        `INSERT INTO engine4_users
+          (email, username, displayname, password, salt, level_id,
+           enabled, verified, approved, creation_date, creation_ip, modified_date)
+         VALUES (?, ?, ?, ?, ?, ?, 1, 1, 1, NOW(), ?, NOW())`,
+        [
+          email,
+          username,
+          name || username,
+          crypto.createHash("md5").update(rand(32)).digest("hex"),
+          generateUserSalt(),
+          levelId,
+          DEFAULT_IP,
+        ]
+      );
+
+      const [rows] = await conn.query(
+        "SELECT * FROM engine4_users WHERE user_id = ?", [ins.insertId]);
+      user = rows[0];
+      if (!user) throw new Error(`User insert failed (insertId=${ins.insertId})`);
+
+      if (avatarUrl) {
+        await conn.query(
+          `INSERT INTO sc_user_settings (user_id, avatar_url) VALUES (?, ?)
+           ON DUPLICATE KEY UPDATE avatar_url = VALUES(avatar_url)`,
+          [user.user_id, avatarUrl]);
+      }
     }
 
-    if (!user.enabled) throw new Error("Account disabled");
+    if (!user?.enabled) throw new Error("Account disabled");
 
     // 4) link save
     const expiresAt = tokens.expires_in
@@ -81,14 +96,17 @@ export async function findOrCreateSocialUser({
       [user.user_id, provider, String(providerUid), email || null, name || null,
        avatarUrl || null, tokens.access_token || null, tokens.refresh_token || null, expiresAt]
     );
-if (provider === "facebook") {
-  await conn.query(
-    `INSERT INTO engine4_user_facebook (user_id, facebook_uid, access_token)
-     VALUES (?, ?, ?)
-     ON DUPLICATE KEY UPDATE access_token = VALUES(access_token)`,
-    [user.user_id, providerUid, tokens.access_token || ""]
-  );
-}
+
+    // legacy mirror — purani PHP site bhi FB login pehchane
+    if (provider === "facebook") {
+      await conn.query(
+        `INSERT INTO engine4_user_facebook (user_id, facebook_uid, access_token)
+         VALUES (?, ?, ?)
+         ON DUPLICATE KEY UPDATE access_token = VALUES(access_token)`,
+        [user.user_id, providerUid, tokens.access_token || ""]
+      );
+    }
+
     // 5) login log + lastlogin
     await conn.query(
       `INSERT INTO engine4_user_logins (user_id, email, ip, timestamp, state, source, active)
