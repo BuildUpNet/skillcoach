@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import express from 'express'
 import cors from 'cors'
 import cookieParser from 'cookie-parser'
@@ -8,6 +9,11 @@ import { tasksRouter } from './routes/tasks.js'
 import { membersRouter } from './routes/members.js'
 import { timeRouter } from './routes/time.js'
 import { asyncHandler, getDisplayNames, requireGroupMember } from './lib/groupUtils.js'
+
+console.log("DB_HOST =", process.env.DB_HOST);
+console.log("DB_PORT =", process.env.DB_PORT);
+console.log("DB_USER =", process.env.DB_USER);
+console.log("DB_NAME =", process.env.DB_NAME);
 
 const app = express()
 app.set('trust proxy', 1)
