@@ -5,11 +5,10 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Link, useParams, useNavigate, useLocation } from "react-router-dom";
-import GroupStylesModal from "./GroupStylesModal";
 import DeleteGroupModal from "./DeleteGroupModal";
 import ShareGroupModal from "./ShareGroupModal";
 import {
-  Pencil, Palette, Trash2, Share2, Mail, UserPlus, Users, Eye, Clock,
+  Pencil, Trash2, Share2, Mail, UserPlus, Users, Eye, Clock,
   ChevronDown, ChevronRight, RefreshCw, Check, Crown, Shield,
 } from "lucide-react";
 
@@ -31,7 +30,6 @@ export const GROUP = {
 
 const OPTIONS = [
   { label: "Edit Group Details", icon: Pencil, to: `/groups/edit/${GROUP.id}` },
-  { label: "Edit Group Style", icon: Palette, action: "styles" },
   { label: "Delete Group", icon: Trash2, action: "delete", danger: true },
   { label: "Share Group", icon: Share2, action: "share" },
   { label: "Message Members", icon: Mail, to: `/messages/compose/to/${GROUP.id}/multi/group` },
@@ -286,7 +284,6 @@ function TopActionBar({ onRefresh }) {
 /* ------------------------------------------------------------------ */
 export default function GroupShell({ crumb, children, onRefresh }) {
   const [activeAction, setActiveAction] = useState(null);
-  const [groupCss, setGroupCss] = useState(""); // TODO: load from API
 
   return (
     <div className="bg-[#f4f6f3] font-[Manrope,ui-sans-serif,system-ui] text-[#19352d]">
@@ -305,7 +302,6 @@ export default function GroupShell({ crumb, children, onRefresh }) {
         </div>
       </div>
 
-      <GroupStylesModal open={activeAction === "styles"} onClose={() => setActiveAction(null)} initialCss={groupCss} onSave={(css) => setGroupCss(css)} />
       <DeleteGroupModal open={activeAction === "delete"} onClose={() => setActiveAction(null)} groupName={GROUP.name} onConfirm={() => alert("Group deleted")} />
       <ShareGroupModal open={activeAction === "share"} onClose={() => setActiveAction(null)} group={GROUP} onShare={(message) => console.log("share:", message)} />
     </div>

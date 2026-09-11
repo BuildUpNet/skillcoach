@@ -95,7 +95,7 @@ export default function Navbar({ updates = 0 }) {
 
         <div className="ml-auto hidden items-center gap-2 lg:flex">
           <NotificationBell />
-          <Link to="/become-a-skillcoach" className="rounded-full bg-gold px-5 py-2.5 text-[15px] font-bold text-ink shadow-[0_8px_20px_-10px_rgba(217,164,65,.9)] transition-transform hover:-translate-y-px hover:bg-gold-deep hover:text-white">
+          <Link to="/settings/upgrade" className="rounded-full bg-gold px-5 py-2.5 text-[15px] font-bold text-ink shadow-[0_8px_20px_-10px_rgba(217,164,65,.9)] transition-transform hover:-translate-y-px hover:bg-gold-deep hover:text-white">
             Become a SkillCoach
           </Link>
         </div>
@@ -123,7 +123,7 @@ export default function Navbar({ updates = 0 }) {
               {items.map(([label, to]) => <Link key={to} to={to} onClick={() => setOpen(false)} className="block rounded-xl px-4 py-2.5 text-[15px] font-medium text-ink/80">{label}</Link>)}
             </div>
           ))}
-          <Link to="/become-a-skillcoach" className="mt-3 block rounded-xl bg-gold px-4 py-3 text-center text-[16px] font-bold text-ink">Become a SkillCoach</Link>
+          <Link to="/settings/upgrade" onClick={() => setOpen(false)} className="mt-3 block rounded-xl bg-gold px-4 py-3 text-center text-[16px] font-bold text-ink">Become a SkillCoach</Link>
           <button onClick={handleSignOut} className="mt-2 w-full rounded-xl px-4 py-3 text-left text-[15px] font-semibold text-crimson">Sign out</button>
         </div>
       )}

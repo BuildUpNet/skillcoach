@@ -1,9 +1,11 @@
-// src/components/GroupStylesModal.jsx
+// src/components/archive/GroupStylesModal.jsx
+// ARCHIVED: "Edit Group Style" / Group Styles modal
 // Redesign of the legacy "Group Styles" popup (Edit Group Style → custom CSS for the group).
 // Same tokens as the rest of the redesign: #19352d → #122721 green, #d99b26 amber, mist #f4f6f3.
 // Deps: react, lucide-react.
 //
-// Usage:
+// Usage / Reinstatement:
+//   import GroupStylesModal from "./archive/GroupStylesModal"; // or "./GroupStylesModal"
 //   const [open, setOpen] = useState(false);
 //   <GroupStylesModal open={open} onClose={() => setOpen(false)} initialCss={group.css} onSave={(css) => ...} />
 

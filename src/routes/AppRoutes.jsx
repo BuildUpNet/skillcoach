@@ -54,6 +54,8 @@ import GroupAssigned from "../pages/adminpages/GroupAssigned";
 import GroupReadyToAccept from "../pages/adminpages/GroupReadyToAccept";
 import GroupTimeSummaryReport from "../pages/adminpages/GroupTimeSummaryReport";
 import GroupAccepted from "../pages/adminpages/GroupAccepted";
+import BecomeSkillCoach from "../pages/BecomeSkillCoach";
+
 import ForgotPassword from "../pages/ForgotPassword";
 import ResetPassword from "../pages/ResetPassword";
 
@@ -111,7 +113,7 @@ export default function AppRoutes() {
         <Route path="/signup" element={<SignUpWrapper />} />
         <Route path="/forgot" element={<ForgotPasswordWrapper />} />
         <Route path="/reset" element={<ResetPasswordWrapper />} />
-        <Route path="/settings/upgrade" element={<UpgradePage />} />
+        <Route path="/settings/upgrade" element={<BecomeSkillCoach />} />
 
         {/* signed-in members */}
         <Route element={<RequireAuth />}>
@@ -172,6 +174,7 @@ export default function AppRoutes() {
           <Route path="/group/:id/ready-to-accept" element={<GroupReadyToAccept />} />
           <Route path="/group/:id/time-summary" element={<GroupTimeSummaryReport />} />
           <Route path="/group/:id/accepted" element={<GroupAccepted />} />
+          <Route path="/settings/upgrade" element={<BecomeSkillCoach />} />
         </Route>
 
         {/* admin */}
@@ -190,4 +193,4 @@ export default function AppRoutes() {
       </Route>
     </Routes>
   );
-}
+}

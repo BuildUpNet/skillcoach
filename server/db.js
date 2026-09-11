@@ -3,7 +3,7 @@ import 'dotenv/config'
 
 export const pool = mysql.createPool({
   host: process.env.DB_HOST,
-  port: process.env.DB_PORT,
+  port: Number(process.env.DB_PORT) || 3307,
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
@@ -41,6 +41,16 @@ await pool.query(`
 // empty, which breaks anything role-based (default signup level, admin
 // checks). Seed only when empty — never touches a DB that already has real
 // rows, local or live.
+await pool.query(`
+  CREATE TABLE IF NOT EXISTS engine4_authorization_levels (
+    level_id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(64) NOT NULL,
+    description TEXT,
+    type VARCHAR(32) DEFAULT NULL,
+    flag VARCHAR(32) DEFAULT NULL
+  )
+`)
+
 const [[{ levelCount }]] = await pool.query(
   'SELECT COUNT(*) AS levelCount FROM engine4_authorization_levels',
 )
