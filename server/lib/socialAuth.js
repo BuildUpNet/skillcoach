@@ -43,29 +43,25 @@ export async function findOrCreateSocialUser({
       user = byEmail[0];
     }
 
-    // 3) naya user
-    if (!user) {
-      if (!email) throw new Error("Email not provided by provider");
-      const username = await uniqueUsername(conn, name || email);
-      const [ins] = await conn.query(
-        `INSERT INTO engine4_users
-          (email, username, displayname, password, salt, level_id,
-           enabled, verified, approved, creation_date, creation_ip, modified_date)
-         VALUES (?, ?, ?, ?, ?, ?, 1, 1, 1, NOW(), ?, NOW())`,
-        [email, username, name || username,
-         crypto.createHash("md5").update(rand(32)).digest("hex"),
-         rand(4),generateUserSalt(), levelId,, DEFAULT_IP]
-      );
-      const [rows] = await conn.query(
-        "SELECT * FROM engine4_users WHERE user_id = ?", [ins.insertId]);
-      user = rows[0];
-
-      if (avatarUrl) {
-        await conn.query(
-          `INSERT INTO sc_user_settings (user_id, avatar_url) VALUES (?, ?)
-           ON DUPLICATE KEY UPDATE avatar_url = VALUES(avatar_url)`,
-          [user.user_id, avatarUrl]);
-      }
+ if (!user) {
+  if (!email) throw new Error("Email not provided by provider");
+  const username = await uniqueUsername(conn, name || email);
+  const levelId = await getDefaultLevelId();          // <-- ye line honi chahiye
+  const [ins] = await conn.query(
+    `INSERT INTO engine4_users
+      (email, username, displayname, password, salt, level_id,
+       enabled, verified, approved, creation_date, creation_ip, modified_date)
+     VALUES (?, ?, ?, ?, ?, ?, 1, 1, 1, NOW(), ?, NOW())`,
+    [
+      email,
+      username,
+      name || username,
+      crypto.createHash("md5").update(rand(32)).digest("hex"),  // password
+      generateUserSalt(),                                        // salt
+      levelId,                                                   // level_id
+      DEFAULT_IP,                                                // creation_ip
+    ]
+  );
     }
 
     if (!user.enabled) throw new Error("Account disabled");

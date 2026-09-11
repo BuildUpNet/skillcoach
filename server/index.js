@@ -22,6 +22,7 @@ import { fileURLToPath } from 'node:url'
 import { friendsRouter } from './routes/friends.js'  
 import { googleRouter } from "./routes/google.js";
 import { facebookRouter } from "./routes/facebook.js";
+import { passwordResetRouter } from "./routes/passwordReset.js";
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const app = express()
 
@@ -41,10 +42,11 @@ app.use(
 
 app.use(express.json({ limit: '6mb' }))
 app.use(cookieParser())
-
+app.use('/api/auth', passwordResetRouter)
 app.use('/api/auth', authRouter)
 app.use('/api/auth', googleRouter) 
 app.use('/api/auth', facebookRouter) 
+
 app.use('/api/credits', creditsRouter);
 app.use('/api/notifications', requireAuth, notificationsRouter)
 app.use('/api/admin', requireAuth, requireAdmin, adminRouter)

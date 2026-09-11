@@ -207,3 +207,21 @@ export async function sendInviteResponseMail({ ownerId, memberId, memberName, gr
     console.error("notification insert failed:", err.message);
   }
 }
+export async function sendForgotPasswordMail({ to, displayName, resetUrl, hours = 24 }) {
+  await sendOne(to, {
+    subject: "Skillcoach - Lost Password",
+    html: layout(
+      "Reset your password",
+      `<p>Hello ${displayName},</p>
+       <p>You have requested to reset your password because you have forgotten it.
+          If you did not request this, please ignore this email — your password will not change.
+          This link will expire in ${hours} hours.</p>`,
+      resetUrl,
+      "Choose a new password",
+    ),
+    text:
+      `Hello ${displayName},\n\n` +
+      `You have requested to reset your password. This link expires in ${hours} hours:\n${resetUrl}\n\n` +
+      `If you did not request this, please ignore this email.\n\nBest Regards,\nSkillcoach Administration`,
+  });
+}

@@ -94,7 +94,12 @@ export const logout = () => request("/api/auth/logout", { method: "POST" });
 export const getMe = () => request("/api/auth/me");
 export const changePassword = (data) =>
   request("/api/auth/me/password", { method: "PUT", body: JSON.stringify(data) });
-
+export const forgotPassword = (email) =>
+  request("/api/auth/forgot", { method: "POST", body: JSON.stringify({ email }) });
+export const verifyResetCode = (code, uid) =>
+  request(`/api/auth/reset/verify?code=${encodeURIComponent(code)}&uid=${encodeURIComponent(uid)}`);
+export const resetPassword = (data) =>
+  request("/api/auth/reset", { method: "POST", body: JSON.stringify(data) });
 // settings
 export const getGeneralSettings = () => request("/api/settings/general");
 export const updateGeneralSettings = (data) =>

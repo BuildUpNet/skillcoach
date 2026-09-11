@@ -50,6 +50,8 @@ import GroupCreateTask from "../pages/adminpages/GroupCreateTask";
 import GroupEditDetails from "../pages/adminpages/GroupEditDetails";
 import GroupMessages from "../pages/adminpages/GroupMessages";
 import GroupInviteFriends from "../pages/adminpages/GroupInviteFriends";
+import ForgotPassword from "../pages/ForgotPassword";
+import ResetPassword from "../pages/ResetPassword";
 
 function SignInWrapper() {
   const navigate = useNavigate();
@@ -58,9 +60,7 @@ function SignInWrapper() {
   return (
     <SignIn
       onNavigateToSignUp={() => navigate("/signup")}
-      onForgotPassword={() =>
-        alert("Password reset link will be sent to your email.")
-      }
+      onForgotPassword={() => navigate("/forgot")}
       onSuccess={(user) => { signIn(user); navigate("/projects"); }}
     />
   );
@@ -78,6 +78,25 @@ function SignUpWrapper() {
   );
 }
 
+function ForgotPasswordWrapper() {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  if (user) return <Navigate to="/projects" replace />;
+  return <ForgotPassword onBackToSignIn={() => navigate("/")} />;
+}
+
+function ResetPasswordWrapper() {
+  const navigate = useNavigate();
+  const { signIn } = useAuth();
+  return (
+    <ResetPassword
+      onSuccess={(user) => { signIn(user); navigate("/projects"); }}
+      onBackToSignIn={() => navigate("/")}
+      onForgotAgain={() => navigate("/forgot")}
+    />
+  );
+}
+
 export default function AppRoutes() {
   return (
     <Routes>
@@ -85,6 +104,8 @@ export default function AppRoutes() {
         {/* public */}
         <Route path="/" element={<SignInWrapper />} />
         <Route path="/signup" element={<SignUpWrapper />} />
+        <Route path="/forgot" element={<ForgotPasswordWrapper />} />
+        <Route path="/reset" element={<ResetPasswordWrapper />} />
         <Route path="/settings/upgrade" element={<UpgradePage />} />
 
         {/* signed-in members */}
