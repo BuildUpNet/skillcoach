@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { MemberAvatar } from "../components/GroupHoverCard";
 import {
   getMembers, getFriendRequests, sendFriendRequest, cancelFriendRequest,
@@ -16,6 +16,7 @@ function useDebounced(value, ms = 350) {
 
 /* One button (or pair) that reflects the friendship state and performs the action */
 export function FriendButton({ member, onChange, size = "md" }) {
+  const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const sz = size === "sm" ? "px-3.5 py-2 text-[14px]" : "py-2.5 text-[14.5px]";
@@ -29,17 +30,37 @@ export function FriendButton({ member, onChange, size = "md" }) {
     } finally { setBusy(false); }
   };
 
+  const goMessage = () => {
+    navigate(`/messages?tab=compose&to=${member.id}&name=${encodeURIComponent(member.name)}`);
+  };
+
   if (member.relation === "self") {
     return <span className={`flex w-full items-center justify-center rounded-full border border-line ${sz} font-semibold text-ink/40`}>That's you</span>;
   }
+
   if (member.relation === "friends") {
     return (
-      <button disabled={busy} onClick={() => { if (confirm(`Remove ${member.name} from your friends?`)) run(removeFriend, "none"); }}
-        className={`group flex w-full items-center justify-center gap-2 rounded-full bg-forest-soft ${sz} font-semibold text-forest transition-colors hover:bg-crimson/10 hover:text-crimson disabled:opacity-60`}>
-        <span className="group-hover:hidden">✓ Friends</span><span className="hidden group-hover:inline">Remove friend</span>
-      </button>
+      <div className="flex w-full gap-2">
+        <button
+          onClick={goMessage}
+          className={`flex-1 flex items-center justify-center gap-1.5 rounded-full border border-line bg-white ${sz} font-semibold text-ink/70 transition-colors hover:border-forest hover:text-forest`}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4">
+            <path d="M4 5h16v10H8l-4 4V5z" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          Message
+        </button>
+        <button
+          disabled={busy}
+          onClick={() => { if (confirm(`Remove ${member.name} from your friends?`)) run(removeFriend, "none"); }}
+          className={`group flex-1 flex items-center justify-center gap-2 rounded-full bg-forest-soft ${sz} font-semibold text-forest transition-colors hover:bg-crimson/10 hover:text-crimson disabled:opacity-60`}
+        >
+          <span className="group-hover:hidden">✓ Friends</span><span className="hidden group-hover:inline">Remove</span>
+        </button>
+      </div>
     );
   }
+
   if (member.relation === "requested") {
     return (
       <button disabled={busy} onClick={() => run(cancelFriendRequest, "none")}
@@ -48,6 +69,7 @@ export function FriendButton({ member, onChange, size = "md" }) {
       </button>
     );
   }
+
   if (member.relation === "incoming") {
     return (
       <div className="flex w-full gap-2">
@@ -58,6 +80,7 @@ export function FriendButton({ member, onChange, size = "md" }) {
       </div>
     );
   }
+
   return (
     <div className="w-full">
       <button disabled={busy} onClick={() => run(sendFriendRequest, "requested")}
@@ -141,7 +164,6 @@ export default function Members() {
         </div>
       </div>
 
-      {/* tabs */}
       <div className="mb-5 flex gap-1.5 rounded-2xl bg-white p-1.5 ring-1 ring-line sm:w-fit">
         {[["all", "All members"], ["requests", `Friend requests${requests.length ? ` (${requests.length})` : ""}`]].map(([k, l]) => (
           <button key={k} onClick={() => setTab(k)}

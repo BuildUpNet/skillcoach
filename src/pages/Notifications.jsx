@@ -13,6 +13,7 @@ const KIND = {
   invite_declined:    { label: "Declined",   tone: "bg-crimson/10 text-crimson",     path: "M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM17 8l5 5m0-5l-5 5" },
   friend_request:  { label: "Friend request", tone: "bg-gold-soft text-gold-deep", path: "M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM20 8v6M17 11h6" },
 friend_accepted: { label: "Friends",        tone: "bg-forest-soft text-forest",  path: "M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM17 11l2 2 4-4" },
+message_new: { label: "Message", tone: "bg-forest-soft text-forest", path: "M4 5h16v10H8l-4 4V5z" },
 };
 const FALLBACK = { label: "Update", tone: "bg-mist text-ink/70", path: "M6 8a6 6 0 0112 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.9 1.9 0 003.4 0" };
 

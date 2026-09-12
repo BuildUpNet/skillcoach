@@ -24,6 +24,7 @@ import { friendsRouter } from './routes/friends.js'
 import { googleRouter } from "./routes/google.js";
 import { facebookRouter } from "./routes/facebook.js";
 import { passwordResetRouter } from "./routes/passwordReset.js";
+import { messagesRouter } from "./routes/messages.js";
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 const app = express()
@@ -56,6 +57,7 @@ app.use('/api/profiles', requireAuth, profilesRouter)
 app.use('/api/me/profile', requireAuth, profileEditRouter)
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
 app.use('/api/members', requireAuth, friendsRouter)
+app.use("/api/messages", requireAuth, messagesRouter);
 const IMAGE_DATA_URL_RE = /^data:image\/(png|jpe?g|webp);base64,/
 const MAX_PHOTO_DATA_URL_LENGTH = 3_500_000 // ~2.5MB decoded
 
