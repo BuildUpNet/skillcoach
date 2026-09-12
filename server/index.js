@@ -76,7 +76,26 @@ async function getPhotoMap(groupIds) {
     return new Map()
   }
 }
-
+app.get('/api/debug/test-mail', requireAuth, asyncHandler(async (req, res) => {
+  try {
+    const nodemailer = (await import('nodemailer')).default
+    const t = nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port: Number(process.env.SMTP_PORT || 587),
+      secure: process.env.SMTP_PORT === '465',
+      auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+    })
+    const info = await t.sendMail({
+      from: process.env.MAIL_FROM,
+      to: req.query.to || process.env.SMTP_USER,
+      subject: 'Test from Vercel',
+      text: 'If you got this, SMTP works on Vercel.',
+    })
+    res.json({ ok: true, messageId: info.messageId })
+  } catch (e) {
+    res.status(500).json({ error: e.message, code: e.code })
+  }
+}))
 app.get('/api/health', asyncHandler(async (req, res) => {
   const [rows] = await pool.query('SELECT 1 AS ok')
   res.json({ status: 'ok', db: rows[0].ok === 1 })
