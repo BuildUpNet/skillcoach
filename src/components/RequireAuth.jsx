@@ -12,7 +12,7 @@ export default function RequireAuth() {
     );
   }
 
-  if (!user) return <Navigate to="/" replace />;
+  if (!user) return <Navigate to="/signin" replace />;
 
   return <Outlet />;
 }
