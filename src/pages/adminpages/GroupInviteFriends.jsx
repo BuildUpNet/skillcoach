@@ -36,6 +36,7 @@ import {
   FileText,
   Mail,
   Loader2,
+  X,
 } from "lucide-react";
 import {
   getGroup,
@@ -44,6 +45,7 @@ import {
   getMembers,
   inviteMemberById,
   inviteMember,
+  cancelInvite,
   googleContactsImportUrl,
   facebookContactsImportUrl,
   getImportedContacts,
@@ -516,6 +518,57 @@ function SingleAddresses({ groupId, groupName }) {
 }
 
 /* ------------------------------------------------------------------ */
+/*  5. Pending invites — same cancel-invite feature the old, simpler   */
+/*     group/Invite.jsx page had; kept here so nothing is lost now     */
+/*     that this page is what the sidebar's "Invite" link opens.       */
+/* ------------------------------------------------------------------ */
+function PendingInvites({ groupId, invites, onCancelled }) {
+  const [cancelingId, setCancelingId] = useState(null);
+
+  const handleCancel = async (invite) => {
+    setCancelingId(invite.id);
+    try {
+      await cancelInvite(groupId, invite.id);
+      onCancelled(invite.id);
+    } catch {
+      // leave it in the list — user can retry
+    } finally {
+      setCancelingId(null);
+    }
+  };
+
+  if (!invites.length) return null;
+
+  return (
+    <section className="mt-6 overflow-hidden rounded-2xl border border-gray-200/80 bg-white shadow-[0_18px_40px_-28px_rgba(18,39,33,0.45)]">
+      <div className="px-6 py-4 sm:px-8">
+        <h2 className="text-base font-bold uppercase tracking-wide text-[#19352d] sm:text-lg">
+          Pending invites ({invites.length})
+        </h2>
+      </div>
+      <ul className="divide-y divide-gray-200/80 border-t border-gray-200/80">
+        {invites.map((inv) => (
+          <li key={inv.id} className="flex items-center justify-between gap-3 px-6 py-3.5 sm:px-8">
+            <span className="text-[15px] font-medium text-[#19352d]">{inv.email}</span>
+            <div className="flex items-center gap-3">
+              <span className="text-[13px] italic text-[#19352d]/50">Sent {inv.sentDate}</span>
+              <button
+                type="button"
+                disabled={cancelingId === inv.id}
+                onClick={() => handleCancel(inv)}
+                className="inline-flex items-center gap-1 rounded-full border border-gray-200/80 px-2.5 py-1 text-[12px] font-semibold text-[#19352d]/50 transition-colors hover:border-red-400 hover:text-red-600 disabled:opacity-50"
+              >
+                <X className="h-3 w-3" /> Cancel
+              </button>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /*  Page                                                               */
 /* ------------------------------------------------------------------ */
 export default function GroupInviteFriends() {
@@ -524,6 +577,7 @@ export default function GroupInviteFriends() {
   const [open, setOpen] = useState("members"); // real, working section opens first
   const [group, setGroup] = useState(null);
   const [excludeIds, setExcludeIds] = useState(null);
+  const [invites, setInvites] = useState([]);
   const [loadError, setLoadError] = useState("");
   const [imported, setImported] = useState(null);
   const [importError, setImportError] = useState("");
@@ -534,6 +588,7 @@ export default function GroupInviteFriends() {
       .then(([g, members, invites]) => {
         if (cancelled) return;
         setGroup(g);
+        setInvites(invites);
         setExcludeIds(new Set([...members.map((m) => m.id), ...invites.map((i) => i.id)]));
       })
       .catch((err) => !cancelled && setLoadError(err.message || "Could not load this group"));
@@ -541,6 +596,15 @@ export default function GroupInviteFriends() {
       cancelled = true;
     };
   }, [groupId]);
+
+  const handleInviteCancelled = (userId) => {
+    setInvites((list) => list.filter((i) => i.id !== userId));
+    setExcludeIds((ids) => {
+      const next = new Set(ids);
+      next.delete(userId);
+      return next;
+    });
+  };
 
   // returning from the Google/Facebook "import contacts" OAuth redirect
   useEffect(() => {
@@ -616,6 +680,8 @@ export default function GroupInviteFriends() {
             details).
           </p>
         </aside>
+
+        <PendingInvites groupId={groupId} invites={invites} onCancelled={handleInviteCancelled} />
 
         {/* Accordion */}
         <div className="mt-6 space-y-4">

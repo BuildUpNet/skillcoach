@@ -21,7 +21,7 @@ export default function GroupSidebar({ groupId, info, yourRole }) {
       label: "People",
       items: [
         { to: `${base}/members`, label: "Members", icon: "users", badge: info.memberCount },
-        { to: `${base}/invite`, label: "Invite", icon: "userPlus" },
+        { to: `/groups/invite/${groupId}`, label: "Invite", icon: "userPlus" },
         ...(canManage
           ? [
               { to: `${base}/manage`, label: "Manage group", icon: "shield" },
