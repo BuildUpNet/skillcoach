@@ -24,6 +24,7 @@ import { friendsRouter } from './routes/friends.js'
 import { googleRouter } from "./routes/google.js";
 import { facebookRouter } from "./routes/facebook.js";
 import { passwordResetRouter } from "./routes/passwordReset.js";
+import { messagesRouter } from "./routes/messages.js";
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 const app = express()
@@ -56,6 +57,7 @@ app.use('/api/profiles', requireAuth, profilesRouter)
 app.use('/api/me/profile', requireAuth, profileEditRouter)
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
 app.use('/api/members', requireAuth, friendsRouter)
+app.use("/api/messages", requireAuth, messagesRouter);
 const IMAGE_DATA_URL_RE = /^data:image\/(png|jpe?g|webp);base64,/
 const MAX_PHOTO_DATA_URL_LENGTH = 3_500_000 // ~2.5MB decoded
 
@@ -74,7 +76,26 @@ async function getPhotoMap(groupIds) {
     return new Map()
   }
 }
-
+app.get('/api/debug/test-mail', requireAuth, asyncHandler(async (req, res) => {
+  try {
+    const nodemailer = (await import('nodemailer')).default
+    const t = nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port: Number(process.env.SMTP_PORT || 587),
+      secure: process.env.SMTP_PORT === '465',
+      auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+    })
+    const info = await t.sendMail({
+      from: process.env.MAIL_FROM,
+      to: req.query.to || process.env.SMTP_USER,
+      subject: 'Test from Vercel',
+      text: 'If you got this, SMTP works on Vercel.',
+    })
+    res.json({ ok: true, messageId: info.messageId })
+  } catch (e) {
+    res.status(500).json({ error: e.message, code: e.code })
+  }
+}))
 app.get('/api/health', asyncHandler(async (req, res) => {
   const [rows] = await pool.query('SELECT 1 AS ok')
   res.json({ status: 'ok', db: rows[0].ok === 1 })

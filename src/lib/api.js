@@ -189,3 +189,32 @@ export const removeFriend = (id) => request(`/api/members/${id}/friend`, { metho
 export const blockMember = (id) => request(`/api/members/${id}/block`, { method: "POST" });
 export const unblockMember = (id) => request(`/api/members/${id}/block`, { method: "DELETE" });
 export const reportMember = (id, data) => request(`/api/members/${id}/report`, { method: "POST", body: JSON.stringify(data) });
+
+export const getInbox = (page = 1) =>
+  request(`/api/messages/inbox?page=${page}`);
+
+export const getOutbox = (page = 1) =>
+  request(`/api/messages/outbox?page=${page}`);
+
+export const getConversation = (id) =>
+  request(`/api/messages/conversation/${id}`);
+
+export const replyToConversation = (id, body, attachment = null) =>
+  request(`/api/messages/conversation/${id}/reply`, {
+    method: "POST",
+    body: JSON.stringify({ body, attachment }),
+  });
+
+export const composeMessage = ({ to, subject, body, attachment = null }) =>
+  request(`/api/messages/compose`, {
+    method: "POST",
+    body: JSON.stringify({ to, subject, body, attachment }),
+  });
+export const deleteConversations = (conversationIds, place) =>
+  request(`/api/messages/delete`, {
+    method: "POST",
+    body: JSON.stringify({ conversationIds, place }),
+  });
+
+export const searchMessages = (query) =>
+  request(`/api/messages/search?query=${encodeURIComponent(query)}`);
