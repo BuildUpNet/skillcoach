@@ -120,6 +120,12 @@ export const disconnectTwitter = () => request("/api/settings/twitter", { method
 export const facebookConnectUrl = () => `${BASE_URL}/api/auth/facebook/start?mode=connect`;
 export const facebookLoginUrl = () => `${BASE_URL}/api/auth/facebook/start?mode=login`;
 
+// Invite Friends → "Import your contacts" (also a full-page redirect — needs
+// a fresh OAuth consent for the contacts/friends scope, on top of login):
+export const googleContactsImportUrl = (groupId) => `${BASE_URL}/api/contacts/google/start?groupId=${groupId}`;
+export const facebookContactsImportUrl = (groupId) => `${BASE_URL}/api/contacts/facebook/start?groupId=${groupId}`;
+export const getImportedContacts = (importId) => request(`/api/contacts/result/${importId}`);
+
 // notifications & invites
 export const getNotifications = (limit = 20) => request(`/api/notifications?limit=${limit}`);
 export const markNotificationRead = (id) => request(`/api/notifications/${id}/read`, { method: "PATCH" });
@@ -189,3 +195,32 @@ export const removeFriend = (id) => request(`/api/members/${id}/friend`, { metho
 export const blockMember = (id) => request(`/api/members/${id}/block`, { method: "POST" });
 export const unblockMember = (id) => request(`/api/members/${id}/block`, { method: "DELETE" });
 export const reportMember = (id, data) => request(`/api/members/${id}/report`, { method: "POST", body: JSON.stringify(data) });
+
+export const getInbox = (page = 1) =>
+  request(`/api/messages/inbox?page=${page}`);
+
+export const getOutbox = (page = 1) =>
+  request(`/api/messages/outbox?page=${page}`);
+
+export const getConversation = (id) =>
+  request(`/api/messages/conversation/${id}`);
+
+export const replyToConversation = (id, body, attachment = null) =>
+  request(`/api/messages/conversation/${id}/reply`, {
+    method: "POST",
+    body: JSON.stringify({ body, attachment }),
+  });
+
+export const composeMessage = ({ to, subject, body, attachment = null }) =>
+  request(`/api/messages/compose`, {
+    method: "POST",
+    body: JSON.stringify({ to, subject, body, attachment }),
+  });
+export const deleteConversations = (conversationIds, place) =>
+  request(`/api/messages/delete`, {
+    method: "POST",
+    body: JSON.stringify({ conversationIds, place }),
+  });
+
+export const searchMessages = (query) =>
+  request(`/api/messages/search?query=${encodeURIComponent(query)}`);

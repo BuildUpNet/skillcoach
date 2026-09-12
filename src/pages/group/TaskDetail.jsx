@@ -242,9 +242,9 @@ function AssignmentItem({ item, isOpen, isHighlighted, canToggleDone, canManage,
 
       {isOpen && (
         <div className="space-y-4 border-t border-line px-4 py-4">
-          <div className="flex items-start justify-between gap-4">
+          <div className="flex flex-wrap items-start justify-between gap-4">
             <div
-              className="max-w-[70ch] text-[15px] leading-6 text-ink/80 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"
+              className="min-w-0 max-w-full text-[15px] leading-6 text-ink/80 sm:max-w-[70ch] [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_img]:my-2 [&_img]:h-auto [&_img]:max-w-full [&_img]:rounded-xl"
               dangerouslySetInnerHTML={{ __html: sanitizeHtml(item.details) }}
             />
             <div className="flex flex-none items-center gap-2">
@@ -597,7 +597,7 @@ export default function TaskDetail() {
           </div>
         </div>
         <div
-          className="mt-5 max-w-[70ch] text-[15px] leading-7 text-ink/75 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"
+          className="mt-5 max-w-full text-[15px] leading-7 text-ink/75 sm:max-w-[70ch] [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_img]:my-2 [&_img]:h-auto [&_img]:max-w-full [&_img]:rounded-xl"
           dangerouslySetInnerHTML={{ __html: sanitizeHtml(task.description) }}
         />
       </Card>

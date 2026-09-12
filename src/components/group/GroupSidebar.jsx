@@ -21,12 +21,18 @@ export default function GroupSidebar({ groupId, info, yourRole }) {
       label: "People",
       items: [
         { to: `${base}/members`, label: "Members", icon: "users", badge: info.memberCount },
-        { to: `${base}/invite`, label: "Invite", icon: "userPlus" },
-        ...(canManage ? [{ to: `${base}/manage`, label: "Manage group", icon: "shield" }] : []),
+        { to: `/groups/invite/${groupId}`, label: "Invite", icon: "userPlus" },
+        ...(canManage
+          ? [
+              { to: `${base}/manage`, label: "Manage group", icon: "shield" },
+              { to: `/group/edit/${groupId}`, label: "Edit Group", icon: "edit" },
+            ]
+          : []),
       ],
     },
     { label: "Activity", items: [{ to: `${base}/timeline`, label: "Timeline", icon: "pulse" }] },
-    { label: "Learn", items: [{ to: `${base}/lessons`, label: "Lessons", icon: "book", badge: info.lessonCount }] },
+    // "Learn" (Lessons) not in use yet — re-enable once the Lessons/Video module is built.
+    // { label: "Learn", items: [{ to: `${base}/lessons`, label: "Lessons", icon: "book", badge: info.lessonCount }] },
   ];
 
   const linkCls = ({ isActive }) =>

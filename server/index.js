@@ -24,6 +24,8 @@ import { friendsRouter } from './routes/friends.js'
 import { googleRouter } from "./routes/google.js";
 import { facebookRouter } from "./routes/facebook.js";
 import { passwordResetRouter } from "./routes/passwordReset.js";
+import { messagesRouter } from "./routes/messages.js";
+import { contactsImportRouter } from "./routes/contactsImport.js";
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 const app = express()
@@ -46,8 +48,9 @@ app.use(express.json({ limit: '6mb' }))
 app.use(cookieParser())
 app.use('/api/auth', passwordResetRouter)
 app.use('/api/auth', authRouter)
-app.use('/api/auth', googleRouter) 
-app.use('/api/auth', facebookRouter) 
+app.use('/api/auth', googleRouter)
+app.use('/api/auth', facebookRouter)
+app.use('/api/contacts', contactsImportRouter)
 
 app.use('/api/credits', creditsRouter);
 app.use('/api/notifications', requireAuth, notificationsRouter)
@@ -56,25 +59,68 @@ app.use('/api/profiles', requireAuth, profilesRouter)
 app.use('/api/me/profile', requireAuth, profileEditRouter)
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
 app.use('/api/members', requireAuth, friendsRouter)
+app.use("/api/messages", requireAuth, messagesRouter);
 const IMAGE_DATA_URL_RE = /^data:image\/(png|jpe?g|webp);base64,/
 const MAX_PHOTO_DATA_URL_LENGTH = 3_500_000 // ~2.5MB decoded
+
+const OLD_SITE_URL = process.env.OLD_SITE_URL || 'https://skillcoach.org'
+const legacyPhotoUrl = (p) => (p ? `${OLD_SITE_URL}/${String(p).replace(/^\/+/, '')}` : null)
 
 // Photos are looked up in a separate, try/catch-guarded query rather than a
 // JOIN in the main groups query — a missing/misbehaving photos table should
 // never take down core group listing, it should just mean no photos show.
+//
+// Two possible sources, checked in order:
+//  1. engine4_group_group_photos — photos uploaded through this rebuild's UI.
+//  2. groups.photo_id -> engine4_storage_files.storage_path — the legacy PHP
+//     app's own photo (Group_Model_Group::setPhoto()), so groups that already
+//     had a photo on the live site show it here too, not just new uploads.
 async function getPhotoMap(groupIds) {
   if (!groupIds.length) return new Map()
+  const map = new Map()
   try {
     const [rows] = await pool.query(
       'SELECT group_id, data_url FROM engine4_group_group_photos WHERE group_id IN (?)',
       [groupIds],
     )
-    return new Map(rows.map((r) => [r.group_id, r.data_url]))
-  } catch {
-    return new Map()
-  }
-}
+    rows.forEach((r) => map.set(r.group_id, r.data_url))
+  } catch {}
 
+  const missing = groupIds.filter((id) => !map.has(id))
+  if (missing.length) {
+    try {
+      const [rows] = await pool.query(
+        `SELECT g.group_id, f.storage_path
+         FROM engine4_group_groups g
+         JOIN engine4_storage_files f ON f.file_id = g.photo_id
+         WHERE g.group_id IN (?) AND g.photo_id > 0`,
+        [missing],
+      )
+      rows.forEach((r) => map.set(r.group_id, legacyPhotoUrl(r.storage_path)))
+    } catch {}
+  }
+  return map
+}
+app.get('/api/debug/test-mail', requireAuth, asyncHandler(async (req, res) => {
+  try {
+    const nodemailer = (await import('nodemailer')).default
+    const t = nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port: Number(process.env.SMTP_PORT || 587),
+      secure: process.env.SMTP_PORT === '465',
+      auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+    })
+    const info = await t.sendMail({
+      from: process.env.MAIL_FROM,
+      to: req.query.to || process.env.SMTP_USER,
+      subject: 'Test from Vercel',
+      text: 'If you got this, SMTP works on Vercel.',
+    })
+    res.json({ ok: true, messageId: info.messageId })
+  } catch (e) {
+    res.status(500).json({ error: e.message, code: e.code })
+  }
+}))
 app.get('/api/health', asyncHandler(async (req, res) => {
   const [rows] = await pool.query('SELECT 1 AS ok')
   res.json({ status: 'ok', db: rows[0].ok === 1 })
@@ -403,7 +449,10 @@ app.use('/api/groups/:groupId', requireAuth, requireGroupMember, timeRouter)
 // asyncHandler() relies on.
 app.use((err, req, res, next) => {
   console.error(err)
-  res.status(500).json({ error: 'Server error' })
+  // TEMP: surface the real error in the response body so it shows up in the
+  // browser Network tab directly — Vercel's runtime logs weren't showing it.
+  // Revert to a plain 'Server error' message once the live-only bug is found.
+  res.status(500).json({ error: 'Server error', debug: { message: err.message, code: err.code, sqlMessage: err.sqlMessage } })
 })
 
 const port = process.env.PORT || 4000

@@ -9,7 +9,7 @@ export default function GroupCard({ group, onLeave, onOpen }) {
           <img src={group.image} alt="" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
         ) : (
           <div className="grid h-full w-full place-items-center bg-forest-soft text-[40px] font-extrabold text-forest">
-            {group.name.trim()[0].toUpperCase()}
+            {((group.name || "?").trim()[0] || "?").toUpperCase()}
           </div>
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-forest-deep/80 via-forest-deep/20 to-transparent" />

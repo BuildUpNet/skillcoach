@@ -7,6 +7,7 @@
 import { useAuth } from "../lib/AuthContext";
 import { Hero, PillarCards, ValueProposition, InteractiveSoftware } from "../components/HomeSections";
 
+
 export default function MemberHome({ user: propUser }) {
   const { user: authUser } = useAuth();
   const user = propUser || authUser;

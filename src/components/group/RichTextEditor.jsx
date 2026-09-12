@@ -1,3 +1,4 @@
+import { useRef, useState } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import TextAlign from "@tiptap/extension-text-align";
@@ -18,6 +19,23 @@ import {
   FaLink, FaImage, FaTable, FaMinus, FaEraser, FaUndo, FaRedo,
   FaFont, FaHighlighter,
 } from "react-icons/fa";
+
+// Images can arrive with a baked-in width/height/style — e.g. pasted in from
+// another page or a Word/Google-Docs doc, which stamps its own inline
+// dimensions onto the <img> — and an inline style always wins over our own
+// CSS (`.tiptap-content img` / the `[&_img]` rules on the read-only views),
+// which is what caused images to render stretched/wrong-aspect-ratio even
+// after those CSS rules were added. Strip any such attributes off every
+// <img> so our own sizing always applies. Registered once at module load,
+// not inside sanitizeHtml() (which runs on every keystroke) to avoid
+// stacking duplicate hooks.
+DOMPurify.addHook("afterSanitizeAttributes", (node) => {
+  if (node.tagName === "IMG") {
+    node.removeAttribute("style");
+    node.removeAttribute("width");
+    node.removeAttribute("height");
+  }
+});
 
 // Sanitizes untrusted stored HTML before rendering it anywhere with
 // dangerouslySetInnerHTML (task descriptions / assignment details) — must
@@ -63,6 +81,8 @@ const HEADING_OPTIONS = [
 // rebuilt on Tiptap (actively maintained, MIT-licensed, React 19-safe)
 // instead of literally reusing an end-of-life, unmaintained editor version.
 export default function RichTextEditor({ value, onChange, placeholder, className = "" }) {
+  const fileInputRef = useRef(null);
+  const [imageMenuOpen, setImageMenuOpen] = useState(false);
   const editor = useEditor({
     extensions: [
       StarterKit.configure({ link: { openOnClick: false } }),
@@ -103,9 +123,24 @@ export default function RichTextEditor({ value, onChange, placeholder, className
     editor.chain().focus().extendMarkRange("link").setLink({ href: url.trim() }).run();
   };
 
-  const insertImage = () => {
+  const insertImageFromUrl = () => {
+    setImageMenuOpen(false);
     const url = window.prompt("Image URL");
     if (url?.trim()) editor.chain().focus().setImage({ src: url.trim() }).run();
+  };
+
+  const chooseImageFile = () => {
+    setImageMenuOpen(false);
+    fileInputRef.current?.click();
+  };
+
+  const handleImageFileChange = (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => editor.chain().focus().setImage({ src: reader.result }).run();
+    reader.readAsDataURL(file);
   };
 
   const insertTable = () => {
@@ -162,7 +197,27 @@ export default function RichTextEditor({ value, onChange, placeholder, className
         <span className="mx-1 h-6 w-px bg-line" />
 
         <ToolbarButton title="Link" active={editor.isActive("link")} onClick={setLink}><FaLink size={15} /></ToolbarButton>
-        <ToolbarButton title="Insert image" onClick={insertImage}><FaImage size={15} /></ToolbarButton>
+
+        <div className="relative">
+          <ToolbarButton title="Insert image" onClick={() => setImageMenuOpen((o) => !o)}><FaImage size={15} /></ToolbarButton>
+          {imageMenuOpen && (
+            <>
+              <div className="fixed inset-0 z-10" onClick={() => setImageMenuOpen(false)} />
+              <div className="absolute left-0 top-full z-20 mt-1 min-w-[160px] overflow-hidden rounded-lg border border-line bg-white py-1 shadow-lg">
+                <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={chooseImageFile}
+                  className="block w-full px-3 py-2 text-left text-[14px] font-medium text-ink/80 hover:bg-mist">
+                  Upload from device
+                </button>
+                <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={insertImageFromUrl}
+                  className="block w-full px-3 py-2 text-left text-[14px] font-medium text-ink/80 hover:bg-mist">
+                  Image URL…
+                </button>
+              </div>
+            </>
+          )}
+          <input ref={fileInputRef} type="file" accept="image/*" className="sr-only" onChange={handleImageFileChange} />
+        </div>
+
         <ToolbarButton title="Insert table" onClick={insertTable}><FaTable size={15} /></ToolbarButton>
         <ToolbarButton title="Horizontal rule" onClick={() => editor.chain().focus().setHorizontalRule().run()}><FaMinus size={15} /></ToolbarButton>
         <ToolbarButton title="Remove formatting" onClick={() => editor.chain().focus().unsetAllMarks().clearNodes().run()}><FaEraser size={15} /></ToolbarButton>

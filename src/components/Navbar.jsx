@@ -6,9 +6,9 @@ import NotificationBell from "./NotificationBell";
 
 const links = [
   { to: "/projects", label: "Projects" },
-  { to: "/instruction", label: "Instruction" },
+  // { to: "/instruction", label: "Instruction" }, // not in use yet
   { to: "/badges", label: "Badges" },
-  { to: "/notes", label: "Notes" },
+  // { to: "/notes", label: "Notes" }, // not in use yet
   { to: "/credits", label: "Credits" },
 ];
 
@@ -170,9 +170,9 @@ export default function Navbar({ updates = 0 }) {
 
         <div className="ml-auto hidden items-center gap-2 lg:flex">
           <NotificationBell />
-          <Link to="/settings/upgrade" className="rounded-full bg-gold px-5 py-2.5 text-[15px] font-bold text-ink shadow-[0_8px_20px_-10px_rgba(217,164,65,.9)] transition-transform hover:-translate-y-px hover:bg-gold-deep hover:text-white">
+          {/* <Link to="/settings/upgrade" className="rounded-full bg-gold px-5 py-2.5 text-[15px] font-bold text-ink shadow-[0_8px_20px_-10px_rgba(217,164,65,.9)] transition-transform hover:-translate-y-px hover:bg-gold-deep hover:text-white">
             Become a SkillCoach
-          </Link>
+          </Link> */}
         </div>
 
         <button onClick={() => setOpen((o) => !o)} aria-label="Toggle menu" aria-expanded={open} className="ml-auto rounded-full border border-line p-2.5 lg:hidden">

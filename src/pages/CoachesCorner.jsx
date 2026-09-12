@@ -32,19 +32,7 @@ const PANEL_COPY = {
 };
 
 const TILES = [
-  {
-    title: "Take a lesson",
-    body: "Free education — that's what we're all about. Pick a lesson and jump back in.",
-    to: "/instruction",
-    tone: "bg-gradient-to-br from-forest to-forest-deep text-white",
-    iconTone: "bg-white/15 text-white",
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-6 w-6">
-        <path d="M4 5.5A2.5 2.5 0 016.5 3H12v18H6.5A2.5 2.5 0 014 18.5v-13z" />
-        <path d="M20 5.5A2.5 2.5 0 0017.5 3H12v18h5.5a2.5 2.5 0 002.5-2.5v-13z" />
-      </svg>
-    ),
-  },
+  // "Take a lesson" (/instruction) — not in use yet, re-enable once the Lessons module is built.
   {
     title: "My friends",
     body: "See what lessons your friends are taking, and keep in touch.",
@@ -74,19 +62,7 @@ const TILES = [
       </svg>
     ),
   },
-  {
-    title: "My notes",
-    body: "Review your notes, edit them, and share them with others.",
-    to: "/notes",
-    tone: "bg-ink text-white",
-    iconTone: "bg-gold/20 text-gold",
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-6 w-6">
-        <path d="M6 4h9l3 3v13a1 1 0 01-1 1H6a1 1 0 01-1-1V5a1 1 0 011-1z" strokeLinejoin="round" />
-        <path d="M9 10h6M9 14h6M9 18h3" strokeLinecap="round" />
-      </svg>
-    ),
-  },
+  // "My notes" (/notes) — not in use yet, re-enable once the Notes module is built.
 ];
 
 export default function CoachesCorner() {

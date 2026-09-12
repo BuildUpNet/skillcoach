@@ -227,7 +227,7 @@ tasksRouter.post('/', asyncHandler(async (req, res) => {
       actorId: req.userId,
       type: 'task_created',
       text: 'New Task',
-      link: `/groups/${groupId}`,
+      link: `/projects/${groupId}/tasks/${result.insertId}`,
       objectId: result.insertId,
       meta: { title: title.trim(), group: groupTitle },
     })
@@ -368,7 +368,7 @@ tasksRouter.post('/:taskId/comments', asyncHandler(async (req, res) => {
       actorId: req.userId,
       type: 'task_comment',
       text: parent ? 'New Reply' : 'New Comment',
-      link: `/groups/${groupId}`,
+      link: `/projects/${groupId}/tasks/${taskId}`,
       objectId: Number(taskId),
       meta: { task: task.course_title, group: groupTitle },
     })
@@ -451,7 +451,7 @@ tasksRouter.post('/:taskId/assignments', asyncHandler(async (req, res) => {
       actorId: req.userId,
       type: 'assignment_created',
       text: 'New Assignment',
-      link: `/groups/${groupId}`,
+      link: `/projects/${groupId}/tasks/${taskId}`,
       objectId: Number(taskId),
       meta: { title: title.trim(), task: task.course_title, group: groupTitle },
     })
@@ -567,7 +567,7 @@ tasksRouter.post('/:taskId/assignments/:assignmentId/comments', asyncHandler(asy
       actorId: req.userId,
       type: 'task_comment',
       text: parent ? 'New Reply' : 'New Comment',
-      link: `/groups/${groupId}`,
+      link: `/projects/${groupId}/tasks/${taskId}`,
       objectId: Number(taskId),
       meta: { assignment: assignment.process_title, task: task.course_title, group: groupTitle },
     })

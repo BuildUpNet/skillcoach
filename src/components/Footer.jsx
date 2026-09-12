@@ -2,8 +2,8 @@ import { Link } from "react-router-dom";
 import logo from "../assets/logo.png";
 
 const cols = [
-  ["Learn", [["Projects", "/projects"], ["Instruction", "/instruction"], ["Badges", "/badges"], ["Notes", "/notes"], ["Credits", "/credits"]]],
-  ["Community", [["Coaches corner", "/coaches-corner"], ["Members", "/members"], ["Forum", "/forum"], ["Messages", "/messages"]]],
+  ["Learn", [["Projects", "/projects"], /* ["Instruction", "/instruction"], */ ["Badges", "/badges"], /* ["Notes", "/notes"], */ ["Credits", "/credits"]]],
+  ["Community", [["Coaches corner", "/coaches-corner"], ["Members", "/members"], /* ["Forum", "/forum"], */ ["Messages", "/messages"]]],
 ];
 
 export default function Footer() {
