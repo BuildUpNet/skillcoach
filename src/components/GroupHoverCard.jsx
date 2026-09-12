@@ -6,7 +6,7 @@ export function MemberAvatar({ member, size = "h-9 w-9", className = "" }) {
     <img src={member.avatar} alt={member.name} className={`${size} rounded-full object-cover ring-2 ring-white ${className}`} />
   ) : (
     <span className={`${size} grid place-items-center rounded-full bg-forest-soft text-[13px] font-extrabold text-forest ring-2 ring-white ${className}`}>
-      {member.name.trim()[0].toUpperCase()}
+      {((member.name || member.username || "?").trim()[0] || "?").toUpperCase()}
     </span>
   );
 }
@@ -33,7 +33,7 @@ export default function GroupHoverCard({ group, onLeave, children }) {
                 <img src={group.image} alt="" className="h-20 w-20 flex-none rounded-xl object-cover ring-1 ring-line" />
               ) : (
                 <div className="grid h-20 w-20 flex-none place-items-center rounded-xl bg-forest-soft text-[22px] font-extrabold text-forest ring-1 ring-line">
-                  {group.name.trim()[0].toUpperCase()}
+                  {((group.name || "?").trim()[0] || "?").toUpperCase()}
                 </div>
               )}
               <div className="min-w-0 flex-1">
