@@ -20,6 +20,23 @@ import {
   FaFont, FaHighlighter,
 } from "react-icons/fa";
 
+// Images can arrive with a baked-in width/height/style — e.g. pasted in from
+// another page or a Word/Google-Docs doc, which stamps its own inline
+// dimensions onto the <img> — and an inline style always wins over our own
+// CSS (`.tiptap-content img` / the `[&_img]` rules on the read-only views),
+// which is what caused images to render stretched/wrong-aspect-ratio even
+// after those CSS rules were added. Strip any such attributes off every
+// <img> so our own sizing always applies. Registered once at module load,
+// not inside sanitizeHtml() (which runs on every keystroke) to avoid
+// stacking duplicate hooks.
+DOMPurify.addHook("afterSanitizeAttributes", (node) => {
+  if (node.tagName === "IMG") {
+    node.removeAttribute("style");
+    node.removeAttribute("width");
+    node.removeAttribute("height");
+  }
+});
+
 // Sanitizes untrusted stored HTML before rendering it anywhere with
 // dangerouslySetInnerHTML (task descriptions / assignment details) — must
 // stay in sync with every tag/attribute the toolbar below can produce.
