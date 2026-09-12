@@ -10,7 +10,7 @@ const SECTIONS = (c, isOwn) => [
   { key: "friends", label: `Friends (${c.friends})` }, { key: "groups", label: `Groups (${c.groups})` },
   ...(isOwn
     ? [{ key: "credits", label: "My Credits", to: "/credits" }]
-    : [{ key: "pages", label: `Pages (${c.pages})` }, { key: "lessons", label: `Lessons taken (${c.lessons})` }]),
+    : [{ key: "pages", label: `Pages (${c.pages})` } /* , { key: "lessons", label: `Lessons taken (${c.lessons})` } — not in use yet */]),
 ];
 
 function SideAction({ icon, label, danger, to, onClick }) {

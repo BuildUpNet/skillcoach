@@ -6,14 +6,14 @@ import NotificationBell from "./NotificationBell";
 
 const links = [
   { to: "/projects", label: "Projects" },
-  { to: "/instruction", label: "Instruction" },
+  // { to: "/instruction", label: "Instruction" }, // not in use yet
   { to: "/badges", label: "Badges" },
-  { to: "/notes", label: "Notes" },
+  // { to: "/notes", label: "Notes" }, // not in use yet
   { to: "/credits", label: "Credits" },
 ];
 
 const more = (user) => [
-  ["Community", [["Coaches corner", "/coaches-corner"], ["Members", "/members"], ["Forum", "/forums"], ["Summary", "/summary"]]],
+  ["Community", [["Coaches corner", "/coaches-corner"], ["Members", "/members"], /* ["Forum", "/forums"], */ ["Summary", "/summary"]]],
   ["Account", [["My profile", `/profile/${user.username || user.user_id}`], ["Messages", "/messages"], ["Settings", "/settings"]]],
 ];
 export default function Navbar({ updates = 0 }) {

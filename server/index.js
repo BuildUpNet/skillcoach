@@ -25,6 +25,7 @@ import { googleRouter } from "./routes/google.js";
 import { facebookRouter } from "./routes/facebook.js";
 import { passwordResetRouter } from "./routes/passwordReset.js";
 import { messagesRouter } from "./routes/messages.js";
+import { contactsImportRouter } from "./routes/contactsImport.js";
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 const app = express()
@@ -47,8 +48,9 @@ app.use(express.json({ limit: '6mb' }))
 app.use(cookieParser())
 app.use('/api/auth', passwordResetRouter)
 app.use('/api/auth', authRouter)
-app.use('/api/auth', googleRouter) 
-app.use('/api/auth', facebookRouter) 
+app.use('/api/auth', googleRouter)
+app.use('/api/auth', facebookRouter)
+app.use('/api/contacts', contactsImportRouter)
 
 app.use('/api/credits', creditsRouter);
 app.use('/api/notifications', requireAuth, notificationsRouter)
@@ -424,7 +426,10 @@ app.use('/api/groups/:groupId', requireAuth, requireGroupMember, timeRouter)
 // asyncHandler() relies on.
 app.use((err, req, res, next) => {
   console.error(err)
-  res.status(500).json({ error: 'Server error' })
+  // TEMP: surface the real error in the response body so it shows up in the
+  // browser Network tab directly — Vercel's runtime logs weren't showing it.
+  // Revert to a plain 'Server error' message once the live-only bug is found.
+  res.status(500).json({ error: 'Server error', debug: { message: err.message, code: err.code, sqlMessage: err.sqlMessage } })
 })
 
 const port = process.env.PORT || 4000

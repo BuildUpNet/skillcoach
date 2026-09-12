@@ -6,23 +6,23 @@ import Icon from "../../components/group/icons";
 export default function GroupDashboard() {
   const { groupId } = useParams();
   const { workspace } = useOutletContext();
-  const { myAssignments, myTasks, timesheet, forum, lessons } = workspace;
+  const { myAssignments, myTasks, timesheet } = workspace; // forum/lessons not in use yet
   const [focus, setFocus] = useState("tasks");
 
   const openTasks = myTasks.filter((t) => t.status !== "Completed").length;
   const hoursThisWeek = timesheet["This week"].reduce((n, e) => n + e.hours, 0);
   const today = timesheet.Today;
-  const activeLesson = lessons.find((l) => l.progress < 100) || lessons[0];
 
   const list = focus === "tasks" ? myTasks : myAssignments;
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
         <StatTile value={openTasks} label="Open tasks" accent="crimson" />
         <StatTile value={myAssignments.length} label="Assignments" accent="gold" />
         <StatTile value={`${hoursThisWeek}h`} label="Logged this week" />
-        <StatTile value={forum.posts} label="Forum posts" accent="gold" />
+        {/* Forum posts stat — not in use yet, re-enable once the Forum module is built.
+        <StatTile value={forum.posts} label="Forum posts" accent="gold" /> */}
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
@@ -94,6 +94,7 @@ export default function GroupDashboard() {
             </Link>
           </Card>
 
+          {/* Forum + Lessons cards — not in use yet, re-enable once those modules are built.
           <Card title="Forum">
             <div className="flex items-center justify-between rounded-xl bg-mist/60 px-4 py-3.5">
               <div>
@@ -124,6 +125,7 @@ export default function GroupDashboard() {
               </Link>
             </Card>
           )}
+          */}
         </div>
       </div>
     </div>

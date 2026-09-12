@@ -3,21 +3,25 @@
 // Same tokens as the rest of the redesign: #19352d → #122721 green, #d99b26 amber, mist #f4f6f3, Manrope.
 // Deps: react-router-dom, lucide-react.  Rendered inside AppLayout (navbar + footer already there).
 //
-// Wired to the real backend for the two sections that have a real legacy/
-// backend equivalent:
-//  - "Invite Members" now lists this account's real friends (the same
+// Wired to the real backend for three of the four sections:
+//  - "Invite Members" lists this account's real friends (the same
 //    relationship legacy's Group_MemberController::inviteAction() reads via
 //    $viewer->membership()->getMembers()) who aren't already in the group,
 //    and sends real invites via POST /members/invite-user.
 //  - "Add Single Addresses" sends real by-email invites — this is exactly
 //    what the existing POST /members/invite endpoint already does.
-// "Import your contacts" (Facebook/Gmail/LinkedIn) and "Upload your
-// contacts" (parsing an exported contacts file) have no backend behind them
-// at all — no OAuth provider integration or file-parsing exists in this
-// rebuild — so those two stay static/cosmetic.
+//  - "Import your contacts" redirects to server/routes/contactsImport.js for
+//    a fresh Google/Facebook OAuth consent (contacts.readonly / user_friends
+//    — the login flow's stored token doesn't have that scope), matches
+//    returned emails against engine4_users, and invites by user id or email.
+//    Facebook only ever returns friends who also use this app — a Graph API
+//    platform limit since v2.0, not something this code can widen.
+// "Upload your contacts" (parsing an exported contacts file) has no backend
+// behind it — no file-parsing importer exists in this rebuild — so it stays
+// static/cosmetic. LinkedIn import was intentionally left out.
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import {
   ChevronDown,
   ChevronRight,
@@ -33,9 +37,18 @@ import {
   Mail,
   Loader2,
 } from "lucide-react";
-import { getGroup, getGroupMembers, getGroupInvites, getMembers, inviteMemberById, inviteMember } from "../../lib/api";
+import {
+  getGroup,
+  getGroupMembers,
+  getGroupInvites,
+  getMembers,
+  inviteMemberById,
+  inviteMember,
+  googleContactsImportUrl,
+  facebookContactsImportUrl,
+  getImportedContacts,
+} from "../../lib/api";
 
-const SERVICES = ["facebook", "Gmail", "LinkedIn"];
 const CONTACT_FILE_TYPES = ["Outlook", "Outlook Express", "Thunderbird", "Other (.csv / .vcf)"];
 const MAX_FRIEND_PAGES = 10; // sane cap while paging through /api/members
 
@@ -126,59 +139,135 @@ function Section({ id, title, icon: Icon, open, onToggle, children }) {
 }
 
 /* ------------------------------------------------------------------ */
-/*  1. Import your contacts — no backend/OAuth provider wired up yet   */
+/*  1. Import your contacts — real Google/Facebook OAuth               */
 /* ------------------------------------------------------------------ */
-function ImportContacts() {
-  const [provider, setProvider] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+function ImportContacts({ groupId, excludeIds, imported, importError }) {
+  const [selected, setSelected] = useState([]);
+  const [q, setQ] = useState("");
+  const [sending, setSending] = useState(false);
+  const [result, setResult] = useState(null);
+
+  const contacts = useMemo(
+    () => (imported?.contacts || []).filter((c) => !(c.userId && excludeIds.has(c.userId))),
+    [imported, excludeIds],
+  );
+  const list = useMemo(
+    () => contacts.filter((c) => c.name.toLowerCase().includes(q.trim().toLowerCase()) || c.email.toLowerCase().includes(q.trim().toLowerCase())),
+    [contacts, q],
+  );
+  const all = contacts.length > 0 && selected.length === contacts.length;
+  const toggle = (email) => setSelected((s) => (s.includes(email) ? s.filter((x) => x !== email) : [...s, email]));
+  const toggleAll = () => setSelected(all ? [] : contacts.map((c) => c.email));
+
+  const handleSend = async () => {
+    setSending(true);
+    setResult(null);
+    const sent = [];
+    const failed = [];
+    for (const email of selected) {
+      const c = contacts.find((x) => x.email === email);
+      try {
+        if (c.userId) await inviteMemberById(groupId, c.userId);
+        else await inviteMember(groupId, c.email);
+        sent.push(c.name || c.email);
+      } catch (err) {
+        failed.push({ label: c?.name || email, error: err.message || "failed" });
+      }
+    }
+    setSelected([]);
+    setResult({ sent, failed });
+    setSending(false);
+  };
 
   return (
     <div className="space-y-6">
       <p className="text-[15px] text-[#19352d]/80">How do you talk to the people you know? Choose a service:</p>
 
       <div className="flex flex-wrap gap-2">
-        {SERVICES.map((s) => {
-          const active = provider === s;
-          return (
-            <button
-              key={s}
-              type="button"
-              onClick={() => setProvider(s)}
-              aria-pressed={active}
-              className={`inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-[15px] font-semibold ring-1 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#d99b26] ${
-                active ? "bg-[#19352d] text-white ring-[#19352d]" : "bg-white text-[#19352d] ring-gray-200/80 hover:bg-[#f4f6f3]"
-              }`}
-            >
-              <span className={`h-2 w-2 rounded-full ${active ? "bg-[#d99b26]" : "bg-[#19352d]/30"}`} />
-              {s}
-            </button>
-          );
-        })}
+        <button
+          type="button"
+          onClick={() => { window.location.href = googleContactsImportUrl(groupId); }}
+          className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-[15px] font-semibold text-[#19352d] ring-1 ring-gray-200/80 transition-colors hover:bg-[#f4f6f3]"
+        >
+          <span className="h-2 w-2 rounded-full bg-[#d99b26]" />
+          Gmail
+        </button>
+        <button
+          type="button"
+          onClick={() => { window.location.href = facebookContactsImportUrl(groupId); }}
+          className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-[15px] font-semibold text-[#19352d] ring-1 ring-gray-200/80 transition-colors hover:bg-[#f4f6f3]"
+        >
+          <span className="h-2 w-2 rounded-full bg-[#d99b26]" />
+          Facebook
+        </button>
       </div>
 
       <p className="rounded-xl border border-dashed border-[#19352d]/20 bg-[#f4f6f3] px-4 py-3 text-sm text-[#19352d]/60">
-        Connecting an external contacts provider isn't available yet — this needs a real Facebook/Gmail/LinkedIn OAuth
-        integration that hasn't been built.
+        <Info className="mr-1.5 inline h-4 w-4 align-text-bottom" />
+        Gmail brings in your Google contacts directly. Facebook only returns friends who have also signed into
+        SkillCoach with Facebook — that's a platform limit Meta applies to every app, not something we can widen.
       </p>
 
-      <div className="space-y-5 border-t border-gray-200/80 pt-6">
-        <Field label="Provider" htmlFor="provider">
-          <input id="provider" type="text" value={provider} onChange={(e) => setProvider(e.target.value)} className={`${inputCls} sm:max-w-sm`} />
-        </Field>
-        <Field label="Email" htmlFor="import-email">
-          <input id="import-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} className={`${inputCls} sm:max-w-sm`} />
-        </Field>
-        <Field label="Password" htmlFor="import-password">
-          <input id="import-password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} className={`${inputCls} sm:max-w-sm`} />
-        </Field>
-        <div className="sm:pl-[calc(9rem+1.5rem)]">
-          <button type="button" disabled className={primaryBtn}>
-            <Download className="h-4 w-4" />
-            Import Contacts
-          </button>
-        </div>
-      </div>
+      {importError && (
+        <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{importError}</p>
+      )}
+
+      {imported && (
+        contacts.length === 0 ? (
+          <p className="rounded-xl border border-dashed border-[#19352d]/20 bg-[#f4f6f3] px-4 py-6 text-center text-sm text-[#19352d]/60">
+            No invitable contacts came back from {imported.source === "google" ? "Gmail" : "Facebook"}.
+          </p>
+        ) : (
+          <>
+            <div className="rounded-xl border border-gray-200/80 bg-white">
+              <div className="flex flex-col gap-3 border-b border-gray-200/80 p-3 sm:flex-row sm:items-center sm:justify-between">
+                <label className="inline-flex cursor-pointer items-center gap-3 px-1 text-[15px] font-semibold text-[#19352d]">
+                  <input type="checkbox" className="sr-only" checked={all} onChange={toggleAll} />
+                  <Checkbox checked={all} />
+                  Choose All
+                </label>
+                <div className="relative sm:w-64">
+                  <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#19352d]/45" />
+                  <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search contacts" className={`${inputCls} py-2.5 pl-10`} />
+                </div>
+              </div>
+
+              <ul className="grid max-h-80 grid-cols-1 gap-1 overflow-y-auto p-2 sm:grid-cols-2">
+                {list.map((c) => {
+                  const on = selected.includes(c.email);
+                  return (
+                    <li key={c.email}>
+                      <label className={`flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-[15px] ${on ? "bg-[#19352d] text-white" : "text-[#19352d] hover:bg-[#f4f6f3]"}`}>
+                        <input type="checkbox" className="sr-only" checked={on} onChange={() => toggle(c.email)} />
+                        <Checkbox checked={on} />
+                        <span className="min-w-0 flex-1 truncate">
+                          <span className="block truncate font-medium">{c.name}</span>
+                          <span className={`block truncate text-[13px] ${on ? "text-white/70" : "text-[#19352d]/55"}`}>{c.email}</span>
+                        </span>
+                        <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11.5px] font-bold uppercase tracking-wide ${on ? "bg-white/15" : c.userId ? "bg-emerald-100 text-emerald-800" : "bg-[#19352d]/[0.06] text-[#19352d]/60"}`}>
+                          {c.userId ? "On SkillCoach" : "By email"}
+                        </span>
+                      </label>
+                    </li>
+                  );
+                })}
+                {list.length === 0 && <li className="col-span-full px-3 py-6 text-center text-sm text-[#19352d]/50">No contacts match "{q}"</li>}
+              </ul>
+
+              <p className="border-t border-gray-200/80 px-4 py-2 text-sm text-[#19352d]/60">
+                {selected.length} of {contacts.length} selected
+              </p>
+            </div>
+
+            <ResultBanner result={result} />
+
+            <button type="button" onClick={handleSend} disabled={selected.length === 0 || sending} className={primaryBtn}>
+              {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+              {sending ? "Sending…" : `Import & Invite${selected.length > 0 ? ` (${selected.length})` : ""}`}
+            </button>
+          </>
+        )
+      )}
     </div>
   );
 }
@@ -431,10 +520,13 @@ function SingleAddresses({ groupId, groupName }) {
 /* ------------------------------------------------------------------ */
 export default function GroupInviteFriends() {
   const { id: groupId } = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [open, setOpen] = useState("members"); // real, working section opens first
   const [group, setGroup] = useState(null);
   const [excludeIds, setExcludeIds] = useState(null);
   const [loadError, setLoadError] = useState("");
+  const [imported, setImported] = useState(null);
+  const [importError, setImportError] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -449,6 +541,24 @@ export default function GroupInviteFriends() {
       cancelled = true;
     };
   }, [groupId]);
+
+  // returning from the Google/Facebook "import contacts" OAuth redirect
+  useEffect(() => {
+    const importId = searchParams.get("importId");
+    const source = searchParams.get("imported");
+    const err = searchParams.get("importError");
+    if (!importId && !err) return;
+
+    setOpen("import");
+    if (err) setImportError(err);
+    if (importId) {
+      getImportedContacts(importId)
+        .then((r) => setImported({ source, contacts: r.contacts }))
+        .catch((e) => setImportError(e.message || "Could not load imported contacts"));
+    }
+    setSearchParams((p) => { p.delete("importId"); p.delete("imported"); p.delete("importError"); return p; }, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   if (loadError) {
     return (
@@ -472,7 +582,7 @@ export default function GroupInviteFriends() {
   }
 
   const SECTIONS = [
-    { id: "import", title: "Import your contacts", icon: Download, body: () => <ImportContacts /> },
+    { id: "import", title: "Import your contacts", icon: Download, body: () => <ImportContacts groupId={groupId} excludeIds={excludeIds} imported={imported} importError={importError} /> },
     { id: "members", title: "Invite members", icon: Users, body: () => <InviteMembers groupId={groupId} excludeIds={excludeIds} /> },
     { id: "upload", title: "Upload your contacts", icon: Upload, body: () => <UploadContacts /> },
     { id: "single", title: "Add single addresses", icon: AtSign, body: () => <SingleAddresses groupId={groupId} groupName={group.title} /> },
@@ -501,8 +611,9 @@ export default function GroupInviteFriends() {
           </span>
           <p className="text-[15px] leading-7 text-[#19352d]">
             <span className="font-bold">Instructions:</span> Each of the invitations options below should be used separately.
-            "Invite members" and "Add single addresses" send real, working invites — the other two need integrations
-            that aren't built yet (see each section for details).
+            "Invite members", "Add single addresses" and "Import your contacts" (Gmail/Facebook) send real, working
+            invites — "Upload your contacts" needs a file-parsing backend that isn't built yet (see that section for
+            details).
           </p>
         </aside>
 

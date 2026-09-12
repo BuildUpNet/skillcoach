@@ -120,6 +120,12 @@ export const disconnectTwitter = () => request("/api/settings/twitter", { method
 export const facebookConnectUrl = () => `${BASE_URL}/api/auth/facebook/start?mode=connect`;
 export const facebookLoginUrl = () => `${BASE_URL}/api/auth/facebook/start?mode=login`;
 
+// Invite Friends → "Import your contacts" (also a full-page redirect — needs
+// a fresh OAuth consent for the contacts/friends scope, on top of login):
+export const googleContactsImportUrl = (groupId) => `${BASE_URL}/api/contacts/google/start?groupId=${groupId}`;
+export const facebookContactsImportUrl = (groupId) => `${BASE_URL}/api/contacts/facebook/start?groupId=${groupId}`;
+export const getImportedContacts = (importId) => request(`/api/contacts/result/${importId}`);
+
 // notifications & invites
 export const getNotifications = (limit = 20) => request(`/api/notifications?limit=${limit}`);
 export const markNotificationRead = (id) => request(`/api/notifications/${id}/read`, { method: "PATCH" });

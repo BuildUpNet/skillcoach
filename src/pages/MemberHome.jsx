@@ -386,8 +386,8 @@ function InteractiveSoftware() {
 /* ------------------------------------------------------------------ */
 function Footer() {
   const cols = [
-    { heading: "Learn", links: ["Projects", "Instruction", "Badges", "Notes", "Credits"] },
-    { heading: "Community", links: ["Coaches corner", "Members", "Forum", "Messages"] },
+    { heading: "Learn", links: ["Projects", "Badges", "Credits"] }, // Instruction/Notes not in use yet
+    { heading: "Community", links: ["Coaches corner", "Members", "Messages"] }, // Forum not in use yet
   ];
 
   return (
