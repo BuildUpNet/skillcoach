@@ -63,20 +63,43 @@ app.use("/api/messages", requireAuth, messagesRouter);
 const IMAGE_DATA_URL_RE = /^data:image\/(png|jpe?g|webp);base64,/
 const MAX_PHOTO_DATA_URL_LENGTH = 3_500_000 // ~2.5MB decoded
 
+const OLD_SITE_URL = process.env.OLD_SITE_URL || 'https://skillcoach.org'
+const legacyPhotoUrl = (p) => (p ? `${OLD_SITE_URL}/${String(p).replace(/^\/+/, '')}` : null)
+
 // Photos are looked up in a separate, try/catch-guarded query rather than a
 // JOIN in the main groups query — a missing/misbehaving photos table should
 // never take down core group listing, it should just mean no photos show.
+//
+// Two possible sources, checked in order:
+//  1. engine4_group_group_photos — photos uploaded through this rebuild's UI.
+//  2. groups.photo_id -> engine4_storage_files.storage_path — the legacy PHP
+//     app's own photo (Group_Model_Group::setPhoto()), so groups that already
+//     had a photo on the live site show it here too, not just new uploads.
 async function getPhotoMap(groupIds) {
   if (!groupIds.length) return new Map()
+  const map = new Map()
   try {
     const [rows] = await pool.query(
       'SELECT group_id, data_url FROM engine4_group_group_photos WHERE group_id IN (?)',
       [groupIds],
     )
-    return new Map(rows.map((r) => [r.group_id, r.data_url]))
-  } catch {
-    return new Map()
+    rows.forEach((r) => map.set(r.group_id, r.data_url))
+  } catch {}
+
+  const missing = groupIds.filter((id) => !map.has(id))
+  if (missing.length) {
+    try {
+      const [rows] = await pool.query(
+        `SELECT g.group_id, f.storage_path
+         FROM engine4_group_groups g
+         JOIN engine4_storage_files f ON f.file_id = g.photo_id
+         WHERE g.group_id IN (?) AND g.photo_id > 0`,
+        [missing],
+      )
+      rows.forEach((r) => map.set(r.group_id, legacyPhotoUrl(r.storage_path)))
+    } catch {}
   }
+  return map
 }
 app.get('/api/debug/test-mail', requireAuth, asyncHandler(async (req, res) => {
   try {
