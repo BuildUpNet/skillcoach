@@ -10,6 +10,7 @@ import AdminGroups from "../pages/admin/AdminGroups";
 // import AdminSettings from "../pages/admin/AdminSettings"; // temporarily disabled, no clear use case yet
 import AdminLogs from "../pages/admin/AdminLogs";
 import { useAuth } from "../lib/AuthContext";
+import Landing from "../pages/Landing";
 import Projects from "../pages/Projects";
 import SignIn from "../pages/SignIn";
 import SignUp from "../pages/SignUp";
@@ -60,6 +61,12 @@ import ForgotPassword from "../pages/ForgotPassword";
 import ResetPassword from "../pages/ResetPassword";
 
 
+function LandingWrapper() {
+  const { user } = useAuth();
+  if (user) return <Navigate to="/projects" replace />;
+  return <Landing />;
+}
+
 function SignInWrapper() {
   const navigate = useNavigate();
   const { user, signIn } = useAuth();
@@ -79,7 +86,7 @@ function SignUpWrapper() {
   if (user) return <Navigate to="/projects" replace />;
   return (
     <SignUp
-      onNavigateToLogin={() => navigate("/")}
+      onNavigateToLogin={() => navigate("/signin")}
       onSuccess={(user) => { signIn(user); navigate("/projects"); }}
     />
   );
@@ -89,7 +96,7 @@ function ForgotPasswordWrapper() {
   const navigate = useNavigate();
   const { user } = useAuth();
   if (user) return <Navigate to="/projects" replace />;
-  return <ForgotPassword onBackToSignIn={() => navigate("/")} />;
+  return <ForgotPassword onBackToSignIn={() => navigate("/signin")} />;
 }
 
 function ResetPasswordWrapper() {
@@ -98,7 +105,7 @@ function ResetPasswordWrapper() {
   return (
     <ResetPassword
       onSuccess={(user) => { signIn(user); navigate("/projects"); }}
-      onBackToSignIn={() => navigate("/")}
+      onBackToSignIn={() => navigate("/signin")}
       onForgotAgain={() => navigate("/forgot")}
     />
   );
@@ -109,7 +116,8 @@ export default function AppRoutes() {
     <Routes>
       <Route element={<AppLayout />}>
         {/* public */}
-        <Route path="/" element={<SignInWrapper />} />
+        <Route path="/" element={<LandingWrapper />} />
+        <Route path="/signin" element={<SignInWrapper />} />
         <Route path="/signup" element={<SignUpWrapper />} />
         <Route path="/forgot" element={<ForgotPasswordWrapper />} />
         <Route path="/reset" element={<ResetPasswordWrapper />} />
@@ -151,6 +159,7 @@ export default function AppRoutes() {
           <Route path="/notes" element={<Notes />} />
           <Route path="/credits" element={<Credits />} />
           <Route path="/coaches-corner" element={<CoachesCorner />} />
+         
           <Route path="/members" element={<Members />} />
           <Route path="/forums" element={<Forums />} />
           <Route path="/forums/:forumId/:forumSlug" element={<ForumTopics />} />
