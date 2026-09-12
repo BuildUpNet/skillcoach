@@ -88,7 +88,7 @@ export default function Projects() {
                 <span aria-hidden>→</span>
               </Link>
               <h1 className="mt-4 sm:mt-6 text-2xl sm:text-4xl lg:text-5xl font-extrabold leading-tight tracking-tight">
-                Your groups,<br />your projects.
+                Your groups & Your projects.
               </h1>
               <p className="mt-3 sm:mt-4 max-w-[46ch] text-sm sm:text-base leading-relaxed text-white/75">
                 Join groups, work alongside coaches and peers, and keep every project moving in one place.
@@ -112,7 +112,7 @@ export default function Projects() {
                   people alongside you
                 </div>
               </div>
-              <div className="col-span-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl bg-white p-3.5 sm:p-4 text-[#19352d]">
+              {/* <div className="col-span-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl bg-white p-3.5 sm:p-4 text-[#19352d]">
                 <span className="text-xs sm:text-sm font-medium text-gray-700">
                   SkillCoaches can create groups.
                 </span>
@@ -122,7 +122,7 @@ export default function Projects() {
                 >
                   Become a SkillCoach
                 </Link>
-              </div>
+              </div> */}
             </div>
           </div>
         </section>
